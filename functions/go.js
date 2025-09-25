@@ -1,4 +1,3 @@
-// /functions/go.js
 export async function onRequestGet({ request, env }) {
   try {
     const url = new URL(request.url);
