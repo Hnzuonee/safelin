@@ -80,6 +80,7 @@
         .credentials li { margin-bottom: 10px; padding-left: 25px; position: relative; }
         .credentials li::before { content: '✓'; color: var(--primary-cyan); position: absolute; left: 0; }
         .footer { text-align: center; padding: 20px 0; font-size: 0.9rem; opacity: 0.6; }
+        .cf-turnstile { margin: 0 auto 20px auto; }
     </style>
 </head>
 <body>
@@ -93,16 +94,33 @@
                 <div class="cf-turnstile"
                      data-sitekey="0x4AAAAAAB3S4iz1VmOz-kYh"
                      data-callback="onTurnstileSuccess"
-                     data-error-callback="onTurnstileError"
-                     data-size="invisible"></div>
-                
-                <input type="hidden" name="cf-turnstile-response" id="turnstile-token-input">
+                     data-error-callback="onTurnstileError"></div>
 
-                <button type="submit" id="cta-button" class="cta-button" disabled>Ověřuji...</button>
+                <button type="submit" id="cta-button" class="cta-button" disabled>Vstupte</button>
             </form>
         </section>
 
-        </div>
+        <section class="card">
+            <h2>Něco málo o mně</h2>
+            <p class="about-text">
+                Jsem Kris, tvůrkyně, která miluje posouvání hranic a sdílení své nejautentičtější stránky. Na mé stránce najdeš exkluzivní obsah, který jinde neuvidíš. Pojďme se bavit!
+            </p>
+            <div class="gallery">
+                <img src="img/galerie-01.jpeg" alt="Ukázka fotky z galerie 1">
+                <img src="img/galerie-02.jpeg" alt="Ukázka fotky z galerie 2">
+                <img src="img/galerie-03.jpeg" alt="Ukázka fotky z galerie 3">
+            </div>
+        </section>
+        <section class="card credentials">
+            <h2>Co na tebe čeká?</h2>
+            <ul>
+                <li>Denně nové fotky a videa v HD kvalitě.</li>
+                <li>Přímý chat se mnou – odpovídám na všechny zprávy.</li>
+                <li>Možnost objednat si obsah na míru přesně pro tebe.</li>
+                <li>Exkluzivní živé přenosy pouze pro členy.</li>
+            </ul>
+        </section>
+    </div>
 
     <footer class="footer">
         <p>&copy; 2025 Kris. Všechna práva vyhrazena. Vstupem potvrzujete, že jste starší 18 let.</p>
@@ -112,13 +130,11 @@
         const button = document.getElementById('cta-button');
         
         function onTurnstileSuccess(token) {
-            document.getElementById('turnstile-token-input').value = token;
             button.disabled = false;
-            button.innerText = 'Vstupte';
         }
 
         function onTurnstileError() {
-            button.innerText = 'Chyba ověření';
+            // Nic neděláme, uživatel to může zkusit znovu
         }
     </script>
 </body>
