@@ -1,17 +1,14 @@
 // Pomocná funkce pro posílání logů do Better Stacku
 async function logToBetterStack(token, logData) {
     try {
+        // Používáme fetch, ale nečekáme na něj v hlavní funkci
         await fetch(token, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                ...logData,
-                // Přidáme timestamp pro přesné časové řazení
-                dt: new Date().toISOString()
-            })
+            body: JSON.stringify({ ...logData, dt: new Date().toISOString() })
         });
     } catch (e) {
-        // Pokud by selhalo odeslání logu, zalogujeme chybu alespoň do Cloudflare
+        // Logujeme chybu pouze do konzole, pokud odeslání selže
         console.error('Chyba při odesílání logu do Better Stack:', e.message);
     }
 }
@@ -34,11 +31,10 @@ async function verifyTurnstileToken(token, secretKey) {
  * Hlavní funkce, která zpracovává požadavky.
  */
 export async function onRequestPost(context) {
-    // Načtení všech potřebných proměnných
-    const { env, request } = context;
+    const { env, request, waitUntil } = context; // ZMĚNA ZDE: Přidali jsme waitUntil
     const secretKey = env.TURNSTILE_SECRET_KEY;
     const destinationURL = env.DESTINATION_URL;
-    const logtailToken = env.LOGTAIL_SOURCE_TOKEN; // Token pro logování
+    const logtailToken = env.LOGTAIL_SOURCE_TOKEN;
 
     try {
         const formData = await request.formData();
@@ -49,7 +45,6 @@ export async function onRequestPost(context) {
             return new Response('Chyba konfigurace serveru.', { status: 500 });
         }
 
-        // Získání informací o požadavku pro logování
         const headers = request.headers;
         const ip = headers.get('cf-connecting-ip') || 'N/A';
         const country = headers.get('cf-ipcountry') || 'N/A';
@@ -57,30 +52,25 @@ export async function onRequestPost(context) {
 
         const isValid = await verifyTurnstileToken(turnstileToken, secretKey);
         
-        // Připravíme data pro log, která pošleme vždy
-        const logData = {
-            ip: ip,
-            country: country,
-            userAgent: userAgent,
-        };
+        const logData = { ip, country, userAgent };
 
         if (isValid) {
-            // ✅ ÚSPĚCH
             if (logtailToken) {
-                logToBetterStack(logtailToken, { ...logData, message: "Ověření úspěšné", status: "SUCCESS" });
+                // ZMĚNA ZDE: Používáme waitUntil, aby logování neblokovalo odpověď
+                waitUntil(logToBetterStack(logtailToken, { ...logData, message: "Ověření úspěšné", status: "SUCCESS" }));
             }
             return new Response(null, { status: 302, headers: { 'Location': destinationURL, 'Cache-Control': 'no-store' }});
         } else {
-            // ❌ SELHÁNÍ
             if (logtailToken) {
-                logToBetterStack(logtailToken, { ...logData, message: "Ověření selhalo - BOT DETECTED", status: "FAILURE" });
+                // ZMĚNA ZDE: I zde používáme waitUntil
+                waitUntil(logToBetterStack(logtailToken, { ...logData, message: "Ověření selhalo - BOT DETECTED", status: "FAILURE" }));
             }
             return new Response('Ověření selhalo. Jste robot?', { status: 403 });
         }
     } catch (error) {
         console.error("Kritická chyba ve funkci redirect:", error);
         if (logtailToken) {
-            logToBetterStack(logtailToken, { message: `Kritická chyba: ${error.message}`, status: "CRITICAL_ERROR" });
+            waitUntil(logToBetterStack(logtailToken, { message: `Kritická chyba: ${error.message}`, status: "CRITICAL_ERROR" }));
         }
         return new Response('Došlo k interní chybě na serveru.', { status: 500 });
     }
