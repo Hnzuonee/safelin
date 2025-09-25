@@ -1,8 +1,10 @@
 export async function onRequestPost(context) {
-    // 1. Načteme data z formuláře a tajné klíče
+    // 1. Načteme data z formuláře
     const formData = await context.request.formData();
     const token = formData.get('cf-turnstile-response');
-    const secretKey = context.env.TURNSTILE_SECRET_KEY;
+    
+    // ZMĚNA ZDE: Vložte svůj Secret Key přímo sem do uvozovek
+    const secretKey = "0x4AAAAAAB3S4r5Z9xssInbpJXe_DjbRkDE"; 
 
     // 2. Připravíme požadavek na ověření u Cloudflare
     const verificationURL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
@@ -26,6 +28,8 @@ export async function onRequestPost(context) {
     } 
     // 5. Pokud není platný, vrátíme chybu
     else {
-        return new Response('Ověření selhalo.', { status: 403 });
+        // Vrátíme i chybovou hlášku od Cloudflare, abychom viděli, co se děje
+        const error = verificationResult['error-codes'] ? verificationResult['error-codes'][0] : 'neznámá chyba';
+        return new Response(`Ověření selhalo: ${error}`, { status: 403 });
     }
 }
