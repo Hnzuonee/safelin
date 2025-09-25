@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet" />
-  <!-- POZOR: bez async/defer kvůli turnstile.ready() -->
+  <!-- POZOR: bez async/defer, protože používáme turnstile.ready() -->
   <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
   <style>
     :root {
@@ -80,7 +80,8 @@
       <!-- Kontejner pro widget -->
       <div id="ts-container"></div>
 
-      <button type="button" id="cta-button" class="cta-button">Vstupte</button>
+      <!-- Tlačítko je zpočátku disabled, zapneme ho až po renderu widgetu -->
+      <button type="button" id="cta-button" class="cta-button" disabled>Načítám…</button>
     </section>
 
     <section class="card">
@@ -116,22 +117,27 @@
     let widgetId = null;
     let isRunning = false;
 
-    // Inicializace widgetu po načtení API
+    // Inicializace widgetu po načtení DOM a API
     document.addEventListener('DOMContentLoaded', () => {
       const init = () => {
         if (!window.turnstile || !turnstile.ready) return setTimeout(init, 50);
         turnstile.ready(() => {
           try {
             widgetId = turnstile.render('#ts-container', {
-              sitekey: '0x4AAAAAAB3S4iz1VmOz-kYh',
-              // DŮLEŽITÉ: 'flexible' (ne 'invisible')
+              sitekey: '0x4AAAAAAB3ZQneX4eafRRnF',
+              // 'flexible' je podporované; 'invisible' vyhazovalo error
               size: 'flexible',
               callback: onTurnstileSuccess,
               'error-callback': onTurnstileError,
               action: 'entry'
             });
+            // Widget připraven → odemknout tlačítko
+            button.disabled = false;
+            button.innerText = 'Vstupte';
           } catch (e) {
             console.error('Turnstile render failed:', e);
+            button.disabled = true;
+            button.innerText = 'Chyba načtení ověření';
           }
         });
       };
@@ -139,7 +145,7 @@
     });
 
     async function onTurnstileSuccess(token) {
-      const originalText = button.innerText;
+      const originalText = 'Vstupte';
       button.disabled = true;
       button.innerText = 'Moment...';
 
@@ -159,15 +165,16 @@
           return;
         }
         console.error('SERVER CHYBA:', data || resp.status);
-        onTurnstileError();
+        // Serverová chyba – ponecháme tlačítko s jasným stavem
+        button.disabled = false;
+        button.innerText = 'Chyba, zkuste to znovu';
       } catch (err) {
         console.error('CHYBA SÍTĚ:', err);
-        onTurnstileError();
+        button.disabled = false;
+        button.innerText = 'Chyba sítě, zkuste znovu';
       } finally {
         try { turnstile.reset(widgetId); } catch {}
         isRunning = false;
-        button.disabled = false;
-        button.innerText = originalText;
       }
     }
 
@@ -175,23 +182,21 @@
       try { turnstile.reset(widgetId); } catch {}
       isRunning = false;
       button.disabled = false;
+      // Nevracíme automaticky na "Vstupte" – ať to „neskáče“
       button.innerText = 'Chyba, zkuste to znovu';
-      setTimeout(() => { button.innerText = 'Vstupte'; }, 2000);
     }
 
     button.addEventListener('click', () => {
       if (!widgetId) {
-        console.warn('Turnstile widget ještě není připraven.');
-        onTurnstileError();
+        // Widget ještě není, nedělej nic (ať to neskáče)
         return;
       }
       if (isRunning) {
-        console.warn('Turnstile už běží – ignoruji duplicitní klik.');
+        // Probíhá ověřování – ignoruj duplicitní klik
         return;
       }
       isRunning = true;
       try {
-        // U 'flexible' je execute povolené; když už běží, hláška radí reset → řeší flag + reset v on*.
         turnstile.execute(widgetId);
       } catch (e) {
         console.error(e);
