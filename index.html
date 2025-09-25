@@ -1,14 +1,15 @@
 <!DOCTYPE html>
 <html lang="cs">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="referrer" content="no-referrer">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="referrer" content="no-referrer" />
   <title>Kris | Exkluzivní Obsah</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
-<script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet" />
+  <!-- POZOR: bez async/defer kvůli turnstile.ready() -->
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js"></script>
   <style>
     :root {
       --background-color: #0d0d1a;
@@ -25,8 +26,7 @@
       background: linear-gradient(-45deg, #0d0d1a, #1a0d1a, #0d1a1a, #0d0d1a);
       background-size: 400% 400%;
       animation: gradientBG 20s ease infinite;
-      margin: 0;
-      padding: 0;
+      margin: 0; padding: 0;
     }
     @keyframes gradientBG {
       0% { background-position: 0% 50%; }
@@ -73,10 +73,11 @@
 <body>
   <div class="container">
     <section class="card">
-      <img src="img/profil.jpg" alt="Profilová fotka Kris" class="profile-picture">
+      <img src="img/profil.jpg" alt="Profilová fotka Kris" class="profile-picture" />
       <h1>Kris</h1>
       <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
 
+      <!-- Kontejner pro widget -->
       <div id="ts-container"></div>
 
       <button type="button" id="cta-button" class="cta-button">Vstupte</button>
@@ -89,9 +90,9 @@
         Na mé stránce najdeš exkluzivní obsah, který jinde neuvidíš. Pojďme se bavit!
       </p>
       <div class="gallery">
-        <img src="img/galerie-01.jpeg" alt="Ukázka fotky z galerie 1">
-        <img src="img/galerie-02.jpeg" alt="Ukázka fotky z galerie 2">
-        <img src="img/galerie-03.jpeg" alt="Ukázka fotky z galerie 3">
+        <img src="img/galerie-01.jpeg" alt="Ukázka fotky z galerie 1" />
+        <img src="img/galerie-02.jpeg" alt="Ukázka fotky z galerie 2" />
+        <img src="img/galerie-03.jpeg" alt="Ukázka fotky z galerie 3" />
       </div>
     </section>
 
@@ -113,18 +114,18 @@
   <script>
     const button = document.getElementById('cta-button');
     let widgetId = null;
+    let isRunning = false;
 
-    // Po načtení DOM počkáme na Turnstile API
+    // Inicializace widgetu po načtení API
     document.addEventListener('DOMContentLoaded', () => {
-      const waitForTurnstile = () => {
-        if (!window.turnstile || !turnstile.ready) {
-          return setTimeout(waitForTurnstile, 100);
-        }
+      const init = () => {
+        if (!window.turnstile || !turnstile.ready) return setTimeout(init, 50);
         turnstile.ready(() => {
           try {
             widgetId = turnstile.render('#ts-container', {
-              sitekey: '0x4AAAAAAB3ZQneX4eafRRnF',
-              size: 'invisible',
+              sitekey: '0x4AAAAAAB3S4iz1VmOz-kYh',
+              // DŮLEŽITÉ: 'flexible' (ne 'invisible')
+              size: 'flexible',
               callback: onTurnstileSuccess,
               'error-callback': onTurnstileError,
               action: 'entry'
@@ -134,7 +135,7 @@
           }
         });
       };
-      waitForTurnstile();
+      init();
     });
 
     async function onTurnstileSuccess(token) {
@@ -164,12 +165,15 @@
         onTurnstileError();
       } finally {
         try { turnstile.reset(widgetId); } catch {}
+        isRunning = false;
         button.disabled = false;
         button.innerText = originalText;
       }
     }
 
     function onTurnstileError() {
+      try { turnstile.reset(widgetId); } catch {}
+      isRunning = false;
       button.disabled = false;
       button.innerText = 'Chyba, zkuste to znovu';
       setTimeout(() => { button.innerText = 'Vstupte'; }, 2000);
@@ -181,8 +185,18 @@
         onTurnstileError();
         return;
       }
-      try { turnstile.execute(widgetId); }
-      catch (e) { console.error(e); onTurnstileError(); }
+      if (isRunning) {
+        console.warn('Turnstile už běží – ignoruji duplicitní klik.');
+        return;
+      }
+      isRunning = true;
+      try {
+        // U 'flexible' je execute povolené; když už běží, hláška radí reset → řeší flag + reset v on*.
+        turnstile.execute(widgetId);
+      } catch (e) {
+        console.error(e);
+        onTurnstileError();
+      }
     });
   </script>
 </body>
