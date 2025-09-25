@@ -13,7 +13,7 @@ async function verifyTurnstileToken(token, secretKey) {
 }
 
 /**
- * Zpracovává POST požadavky, ověří token, zaloguje výsledek a přesměruje.
+ * Zpracovává POST požadavky, ověří token a přesměruje.
  */
 export async function onRequestPost(context) {
     try {
@@ -21,38 +21,28 @@ export async function onRequestPost(context) {
         const secretKey = env.TURNSTILE_SECRET_KEY;
         const destinationURL = env.DESTINATION_URL;
 
-        if (!secretKey || !destinationURL) {
-            console.error("Chyba: Chybí konfigurační proměnné na serveru.");
-            return new Response('Chyba konfigurace serveru.', { status: 500 });
-        }
-        
         const formData = await request.formData();
         const turnstileToken = formData.get('cf-turnstile-response');
 
-        if (!turnstileToken) {
-            console.log(`[BOT DETECTED] Pokus o přístup bez tokenu.`);
-            return new Response('Chybí ověřovací token.', { status: 403 });
+        // Pokud chybí jakákoliv klíčová informace, vrátíme chybu
+        if (!turnstileToken || !secretKey || !destinationURL) {
+            return new Response('Chyba konfigurace nebo chybějící token.', { status: 400 });
         }
         
-        const headers = request.headers;
-        const ip = headers.get('cf-connecting-ip') || 'N/A';
-        const country = headers.get('cf-ipcountry') || 'N/A';
-        const userAgent = headers.get('user-agent') || 'N/A';
-
         const isValid = await verifyTurnstileToken(turnstileToken, secretKey);
 
         if (isValid) {
-            console.log(`[SUCCESS] Ověření úspěšné. IP: ${ip}, Země: ${country}`);
+            // Úspěch -> Přesměrování
             return new Response(null, {
                 status: 302,
                 headers: { 'Location': destinationURL, 'Cache-Control': 'no-store' }
             });
         } else {
-            console.log(`[BOT DETECTED] Neplatný token. IP: ${ip}, Země: ${country}, User-Agent: ${userAgent}`);
+            // Selhání -> Chyba 403
             return new Response('Ověření selhalo. Jste robot?', { status: 403 });
         }
     } catch (error) {
-        console.error("Kritická chyba ve funkci redirect:", error.message);
+        // Kritická chyba
         return new Response('Došlo k interní chybě na serveru.', { status: 500 });
     }
 }
