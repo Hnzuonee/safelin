@@ -10,14 +10,14 @@ export async function onRequestPost(context) {
         if (!turnstileToken || !secretKey || !destinationURL) {
             return new Response('Chyba konfigurace nebo chybějící token.', { status: 400 });
         }
-
+        
         const verificationURL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
         const response = await fetch(verificationURL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-urlencoded' },
             body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(turnstileToken)}`
         });
-
+        
         const result = await response.json();
 
         if (result.success) {
