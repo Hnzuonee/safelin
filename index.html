@@ -5,7 +5,9 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jméno Modelky | Exkluzivní Obsah</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
+    
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstileCallback" async defer></script>
+    
     <style>
         :root { --background-color: #0d0d1a; --primary-pink: #f900ff; --primary-cyan: #00f2ff; --text-color: #f0f0f0; --surface-color: rgba(26, 26, 41, 0.6); --glow-color-1: rgba(249, 0, 255, 0.5); --glow-color-2: rgba(0, 242, 255, 0.5); }
         body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; background: linear-gradient(-45deg, #0d0d1a, #1a0d1a, #0d1a1a, #0d0d1a); background-size: 400% 400%; animation: gradientBG 20s ease infinite; }
@@ -34,7 +36,7 @@
     <div class="container">
         <section class="profile-card">
             <img src="https://images.pexels.com/photos/1848565/pexels-photo-1848565.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Profilová fotka" class="profile-picture">
-            <h1>Jméno Modelky</h1>
+            <h1>Kris</h1>
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
             
             <div id="turnstile-container"></div>
@@ -43,45 +45,21 @@
             <p class="disclaimer">Kliknutím potvrzujete, že jste plnoletí.</p>
         </section>
 
-        <hr class="divider">
-        
-        <div class="stats-and-bio">
-            <div class="stats-card">
-                 <div class="stat-item"><span class="value">175 cm</span><span class="label">Výška</span></div>
-                <div class="stat-item"><span class="value">55 kg</span><span class="label">Váha</span></div>
-                <div class="stat-item"><span class="value">Blond</span><span class="label">Vlasy</span></div>
-                <div class="stat-item"><span class="value">Modré</span><span class="label">Oči</span></div>
-            </div>
-            <div class="bio-long">
-                <h2 class="section-title" style="text-align: left; margin-bottom: 10px;">Můj Příběh</h2>
-                <p>Zde přijde delší a osobnější povídání o modelce...</p>
-            </div>
         </div>
-
-        <h2 class="section-title" style="margin-top: 40px;">Galerie</h2>
-        <div class="gallery">
-             <div class="gallery-item"><img src="https://images.pexels.com/photos/3772507/pexels-photo-3772507.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Ukázková fotka 1"></div>
-            <div class="gallery-item"><img src="https://images.pexels.com/photos/3772509/pexels-photo-3772509.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Ukázková fotka 2"></div>
-            <div class="gallery-item"><img src="https://images.pexels.com/photos/3772506/pexels-photo-3772506.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Ukázková fotka 3"></div>
-            <div class="gallery-item"><img src="https://images.pexels.com/photos/3772505/pexels-photo-3772505.jpeg?auto=compress&cs=tinysrgb&w=800" alt="Ukázková fotka 4"></div>
-        </div>
-    </div>
     
     <footer class="footer">
-        <p>&copy; 2025 Jméno Modelky. Všechna práva vyhrazena.</p>
+        <p>&copy; 2025 Kris. Všechna práva vyhrazena.</p>
         <p><a href="#">Podmínky</a> | <a href="#">Soukromí</a> | <a href="mailto:report@tvojedomena.cz">Nahlásit</a></p>
     </footer>
 
     <script>
         let turnstileToken = null;
 
-        // Funkce, která se zavolá po úspěšném ověření Turnstile
         function onTurnstileSuccess(token) {
             turnstileToken = token;
             const ctaButton = document.getElementById('cta-button');
             ctaButton.textContent = 'Načítám...';
             
-            // Okamžitě odesíláme požadavek na přesměrování
             fetch('/redirect', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -93,26 +71,22 @@
             });
         }
         
-        // Funkce pro inicializaci neviditelného Turnstile
-        function initializeTurnstile() {
+        // ZMĚNA ZDE: Přejmenovali jsme funkci, aby odpovídala parametru v URL skriptu
+        function onloadTurnstileCallback() {
             const ctaButton = document.getElementById('cta-button');
             const turnstileContainer = document.getElementById('turnstile-container');
 
             const turnstileWidgetID = turnstile.render(turnstileContainer, {
-                sitekey: 'VAŠ_SITE_KEY_ZDE', // <-- Doplň svůj Site Key
+                sitekey: '0x4AAAAAAB3RmXvueyfl3EU_', // Tvůj Site Key
                 callback: onTurnstileSuccess,
                 'appearance': 'interaction-only', // Neviditelný režim
             });
 
             ctaButton.addEventListener('click', function() {
                 this.textContent = 'Ověřuji...';
-                // Spustíme ověření až po kliknutí
                 turnstile.execute(turnstileWidgetID);
             });
         }
-
-        // Zavoláme inicializaci, až bude Turnstile API připraveno
-        window.onloadTurnstileCallback = initializeTurnstile;
     </script>
 </body>
 </html>
