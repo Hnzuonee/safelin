@@ -1,7 +1,9 @@
-// /functions/go/[ticket].js
-export async function onRequestGet({ params, env }) {
+// /functions/go.js
+export async function onRequestGet({ request, env }) {
   try {
-    const ticket = params.ticket || "";
+    const url = new URL(request.url);
+    const ticket = url.searchParams.get("ticket") || "";
+
     const parts = ticket.split(".");
     if (parts.length !== 4) return json({ error: "bad ticket" }, 400);
 
@@ -38,7 +40,13 @@ function json(obj, status = 200) {
 }
 
 async function hmac(secret, msg) {
-  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const key = await crypto.subtle.importKey(
+    "raw",
+    new TextEncoder().encode(secret),
+    { name: "HMAC", hash: "SHA-256" },
+    false,
+    ["sign"]
+  );
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
   return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=+$/,'');
 }
