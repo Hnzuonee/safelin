@@ -98,16 +98,23 @@
             opacity: 0.7;
             cursor: not-allowed;
             animation: none;
+            background: #333;
+            box-shadow: none;
         }
-        .loader::after {
-            content: ' .';
-            animation: dots 1.5s steps(5, end) infinite;
+        /* NOVÝ STYL PRO LOADER */
+        .progress-bar {
+            position: absolute;
+            top: 0;
+            left: 0;
+            height: 100%;
+            width: 0%;
+            background-color: rgba(255, 255, 255, 0.2);
+            border-radius: 50px;
+            transition: width 0.1s linear;
         }
-        @keyframes dots {
-            0%, 20% { content: ' .'; }
-            40% { content: ' ..'; }
-            60% { content: ' ...'; }
-            80%, 100% { content: ''; }
+        .button-text {
+            position: relative;
+            z-index: 2;
         }
         .gallery {
             display: grid;
@@ -172,10 +179,12 @@
                 <div class="cf-turnstile"
                      data-sitekey="0x4AAAAAAB3RmXvueyfl3EU_"
                      data-callback="onTurnstileSuccess"
+                     data-error-callback="onTurnstileError"
                      data-size="invisible"></div>
 
                 <button type="submit" id="cta-button" class="cta-button" disabled>
-                    <span id="button-text">Ověřuji</span>
+                    <div id="progress-bar" class="progress-bar"></div>
+                    <span id="button-text" class="button-text">Ověřuji...</span>
                 </button>
             </form>
         </section>
@@ -183,4 +192,66 @@
         <section class="card">
             <h2>Něco málo o mně</h2>
             <p class="about-text">
-                Jsem Kris, tvůrkyně, která miluje posouvání hranic a sdílení své nejautentičtější stránky. Na mé stránce najdeš exkluzivní
+                Jsem Kris, tvůrkyně, která miluje posouvání hranic a sdílení své nejautentičtější stránky. Na mé stránce najdeš exkluzivní obsah, který jinde neuvidíš. Pojďme se bavit!
+            </p>
+            <div class="gallery">
+                <img src="https://images.pexels.com/photos/3765114/pexels-photo-3765114.jpeg?auto=compress&cs=tinysrgb&w=300" alt="Ukázka fotky 1">
+                <img src="https://images.pexels.com/photos/2775163/pexels-photo-2775163.jpeg?auto=compress&cs=tinysrgb&w=300" alt="Ukázka fotky 2">
+                <img src="https://images.pexels.com/photos/3290236/pexels-photo-3290236.jpeg?auto=compress&cs=tinysrgb&w=300" alt="Ukázka fotky 3">
+                <img src="https://images.pexels.com/photos/1308881/pexels-photo-1308881.jpeg?auto=compress&cs=tinysrgb&w=300" alt="Ukázka fotky 4">
+            </div>
+        </section>
+        <section class="card credentials">
+            <h2>Co na tebe čeká?</h2>
+            <ul>
+                <li>Denně nové fotky a videa v HD kvalitě.</li>
+                <li>Přímý chat se mnou – odpovídám na všechny zprávy.</li>
+                <li>Možnost objednat si obsah na míru přesně pro tebe.</li>
+                <li>Exkluzivní živé přenosy pouze pro členy.</li>
+            </ul>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 Kris. Všechna práva vyhrazena. Vstupem potvrzujete, že jste starší 18 let.</p>
+    </footer>
+
+    <script>
+        const button = document.getElementById('cta-button');
+        const buttonText = document.getElementById('button-text');
+        const progressBar = document.getElementById('progress-bar');
+        let loaderInterval;
+
+        // Spustíme loader hned po načtení stránky
+        document.addEventListener('DOMContentLoaded', () => {
+            let width = 0;
+            // Simulujeme načítání po dobu 2.5 sekundy
+            loaderInterval = setInterval(() => {
+                if (width >= 100) {
+                    // Pokud by Turnstile neodpověděl, loader se zastaví
+                    // a čeká na callback
+                } else {
+                    width++;
+                    progressBar.style.width = width + '%';
+                }
+            }, 25); // 25ms * 100 = 2500ms = 2.5s
+        });
+
+        // Co se stane, když Turnstile úspěšně ověří
+        function onTurnstileSuccess() {
+            clearInterval(loaderInterval); // Zastavíme animaci
+            progressBar.style.width = '100%'; // Dokončíme progress bar
+            buttonText.innerText = 'Vstupte'; // Změníme text
+            button.disabled = false; // Povolíme tlačítko
+        }
+
+        // Co se stane, když Turnstile selže
+        function onTurnstileError() {
+            clearInterval(loaderInterval); // Zastavíme animaci
+            buttonText.innerText = 'Chyba ověření';
+            progressBar.style.backgroundColor = '#ff4d4d'; // Změníme barvu na červenou
+            progressBar.style.width = '100%';
+        }
+    </script>
+</body>
+</html>
