@@ -1,35 +1,43 @@
 export async function onRequestPost(context) {
-    // 1. Načteme data z formuláře
-    const formData = await context.request.formData();
-    const token = formData.get('cf-turnstile-response');
-    
-    // ZMĚNA ZDE: Vložte svůj Secret Key přímo sem do uvozovek
-    const secretKey = "0x4AAAAAAB3S4r5Z9xssInbpJXe_DjbRkDE"; 
+    const { env, request } = context;
+    const secretKey = env.TURNSTILE_SECRET_KEY;
+    const destinationURL = env.DESTINATION_URL;
 
-    // 2. Připravíme požadavek na ověření u Cloudflare
-    const verificationURL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-    const verificationRequest = new Request(verificationURL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-urlencoded' },
-        body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(token)}`
-    });
+    try {
+        if (!secretKey || !destinationURL) {
+            console.error("Chyba: Chybí konfigurační proměnné.");
+            return new Response('Chyba konfigurace serveru.', { status: 500 });
+        }
+        
+        const formData = await request.formData();
+        const token = formData.get('cf-turnstile-response');
 
-    // 3. Pošleme požadavek a získáme výsledek
-    const verificationResponse = await fetch(verificationRequest);
-    const verificationResult = await verificationResponse.json();
-
-    // 4. Pokud je výsledek platný, přesměrujeme
-    if (verificationResult.success) {
-        const destinationURL = context.env.DESTINATION_URL;
-        return new Response(null, {
-            status: 302,
-            headers: { 'Location': destinationURL }
+        if (!token) {
+            return new Response('Chybí ověřovací token.', { status: 403 });
+        }
+        
+        const verificationURL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+        const response = await fetch(verificationURL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-urlencoded' },
+            body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(token)}`
         });
-    } 
-    // 5. Pokud není platný, vrátíme chybu
-    else {
-        // Vrátíme i chybovou hlášku od Cloudflare, abychom viděli, co se děje
-        const error = verificationResult['error-codes'] ? verificationResult['error-codes'][0] : 'neznámá chyba';
-        return new Response(`Ověření selhalo: ${error}`, { status: 403 });
+        
+        const result = await response.json();
+
+        if (result.success) {
+            // Důležité: Místo přesměrování vracíme jen status 200, přesměrování řeší frontend
+            return new Response(null, {
+                status: 302, // Opraveno na 302 pro přesměrování
+                headers: {
+                    'Location': destinationURL
+                }
+            });
+        } else {
+            return new Response('Ověření selhalo.', { status: 403 });
+        }
+    } catch (error) {
+        console.error("Kritická chyba:", error.message);
+        return new Response('Došlo k interní chybě.', { status: 500 });
     }
 }
