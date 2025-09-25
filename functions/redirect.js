@@ -17,20 +17,26 @@ async function verifyTurnstileToken(token, secretKey) {
  */
 export async function onRequestPost(context) {
     try {
-        // ZMĚNA ZDE: Načítáme data z formuláře místo JSON
         const formData = await context.request.formData();
-        const token = formData.get('cf-turnstile-response'); // Název políčka je dán Cloudflarem
-        
+        const token = formData.get('cf-turnstile-response');
+
+        // Načtení klíčů a cílové URL z proměnných prostředí
         const secretKey = context.env.TURNSTILE_SECRET_KEY;
+        const destinationURL = context.env.DESTINATION_URL; // ZMĚNA ZDE
 
         if (!token || !secretKey) {
             return new Response('Chybí token nebo serverový klíč.', { status: 400 });
         }
 
+        // Kontrola, zda je cílová URL nastavena na serveru
+        if (!destinationURL) {
+            console.error("Chyba: Proměnná prostředí DESTINATION_URL není nastavena.");
+            return new Response('Chyba konfigurace serveru.', { status: 500 });
+        }
+
         const isValid = await verifyTurnstileToken(token, secretKey);
 
         if (isValid) {
-            const destinationURL = "https://onlyfans.com/jentvojekiks/c9";
             return new Response(null, {
                 status: 302,
                 headers: { 'Location': destinationURL, 'Cache-Control': 'no-store' }
