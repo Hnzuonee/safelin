@@ -80,6 +80,7 @@
         .credentials li { margin-bottom: 10px; padding-left: 25px; position: relative; }
         .credentials li::before { content: '✓'; color: var(--primary-cyan); position: absolute; left: 0; }
         .footer { text-align: center; padding: 20px 0; font-size: 0.9rem; opacity: 0.6; }
+        .cf-turnstile { display: none; }
     </style>
 </head>
 <body>
@@ -89,23 +90,19 @@
             <h1>Kris</h1>
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
             
-            <form id="redirect-form" action="/redirect" method="POST">
-                <div class="cf-turnstile"
-                     data-sitekey="0x4AAAAAAB3S4iz1VmOz-kYh"
-                     data-callback="onTurnstileSuccess"
-                     data-error-callback="onTurnstileError"
-                     data-size="invisible"></div>
-                
-                <input type="hidden" name="cf-turnstile-response" id="turnstile-token-input">
-
-                <button type="submit" id="cta-button" class="cta-button" disabled>Ověřuji...</button>
-            </form>
+            <div class="cf-turnstile"
+                 data-sitekey="0x4AAAAAAB3S4iz1VmOz-kYh"
+                 data-callback="onTurnstileSuccess"
+                 data-error-callback="onTurnstileError"
+                 data-size="invisible"></div>
+            
+            <button type="button" id="cta-button" class="cta-button" disabled>Ověřuji...</button>
         </section>
 
         <section class="card">
             <h2>Něco málo o mně</h2>
             <p class="about-text">
-                Jsem Kris, tvůrkyně, která miluje posouvání hranic a sdílení své nejautentičtější stránky. Na mé stránce najdeš exkluzivní obsah, který jinde neuvidíš. Pojďme se bavit!
+                Jsem Kris, tvůrkyně, která miluje posouvání hranic a sdílení své nejautentičější stránky. Na mé stránce najdeš exkluzivní obsah, který jinde neuvidíš. Pojďme se bavit!
             </p>
             <div class="gallery">
                 <img src="img/galerie-01.jpeg" alt="Ukázka fotky z galerie 1">
@@ -130,9 +127,10 @@
 
     <script>
         const button = document.getElementById('cta-button');
-        
+        let turnstileToken = '';
+
         function onTurnstileSuccess(token) {
-            document.getElementById('turnstile-token-input').value = token;
+            turnstileToken = token;
             button.disabled = false;
             button.innerText = 'Vstupte';
         }
@@ -140,6 +138,33 @@
         function onTurnstileError() {
             button.innerText = 'Chyba ověření';
         }
+
+        button.addEventListener('click', () => {
+            if (button.disabled || !turnstileToken) return;
+
+            button.disabled = true;
+            button.innerText = 'Moment...';
+
+            const formData = new FormData();
+            formData.append('cf-turnstile-response', turnstileToken);
+            
+            fetch('/redirect', {
+                method: 'POST',
+                body: formData,
+                redirect: 'manual' // Důležité: Zabráníme automatickému přesměrování
+            })
+            .then(response => {
+                // Zkontrolujeme, jestli backend poslal přesměrování
+                if (response.status === 302 && response.headers.has('Location')) {
+                    // Přesměrujeme uživatele v tom samém okně
+                    window.location.href = response.headers.get('Location');
+                } else {
+                    // Pokud to selhalo, zobrazíme chybu
+                    onTurnstileError();
+                }
+            })
+            .catch(onTurnstileError);
+        });
     </script>
 </body>
 </html>
