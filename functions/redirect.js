@@ -10,6 +10,7 @@ export async function onRequestPost(context) {
 
         // Kontrola, zda jsou všechny potřebné údaje k dispozici
         if (!token || !secret || !destinationURL) {
+            console.error('Chybějící konfigurace: Ujisti se, že jsou nastaveny TURNSTILE_SECRET_KEY a DESTINATION_URL.');
             return new Response('Chyba serveru: Chybí potřebné údaje pro ověření.', { status: 500 });
         }
 
@@ -17,8 +18,6 @@ export async function onRequestPost(context) {
         const formData = new FormData();
         formData.append('secret', secret);
         formData.append('response', token);
-        // Můžeme přidat i IP adresu klienta pro dodatečnou bezpečnost, ale není to nutné
-        // formData.append('remoteip', request.headers.get('CF-Connecting-IP'));
 
         const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
 
