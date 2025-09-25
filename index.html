@@ -88,9 +88,9 @@
             <h1>Kris</h1>
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
             
-            <div class="cf-turnstile"></div>
+            <div id="turnstile-widget-container"></div>
             
-            <button type="button" id="cta-button" class="cta-button" disabled>Ověřuji...</button>
+            <button type="button" id="cta-button" class="cta-button">Vstupte</button>
         </section>
 
         <section class="card">
@@ -119,78 +119,19 @@
         <p>&copy; 2025 Kris. Všechna práva vyhrazena. Vstupem potvrzujete, že jste starší 18 let.</p>
     </footer>
 
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileApiReady" async defer></script>
     <script>
         const button = document.getElementById('cta-button');
-        let turnstileToken = '';
 
-        console.log('Skript se spustil.');
-
-        // Funkce, která se zavolá, když Turnstile úspěšně získá token
-        function onTurnstileSuccess(token) {
-            console.log('Turnstile ověření bylo ÚSPĚŠNÉ. Získán token:', token);
-            turnstileToken = token;
+        function onTurnstileError() {
+            // V případě chyby obnovíme tlačítko
             button.disabled = false;
-            button.innerText = 'Vstupte';
-        }
-
-        // Funkce, která se zavolá, když dojde k jakékoliv chybě
-        function onTurnstileError(errorCode) {
-            console.error('Turnstile ověření SELHALO.');
-            console.error('Chybový kód (pokud je k dispozici):', errorCode);
-            button.innerText = 'Chyba ověření';
+            button.innerText = 'Chyba, zkuste to znovu';
         }
         
-        // Načítání externího skriptu pro lepší detekci chyb
-        function loadTurnstile() {
-            const script = document.createElement('script');
-            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
-            script.async = true;
-            script.defer = true;
-            
-            // Co se stane, když se skript úspěšně načte
-            script.onload = function() {
-                console.log('Externí skript Turnstile byl úspěšně načten.');
-                // Nyní ručně spustíme renderování widgetu
-                try {
-                    turnstile.render('.cf-turnstile', {
-                        sitekey: '0x4AAAAAAB3S4iz1VmOz-kYh', // Ujisti se, že je klíč správný
-                        callback: onTurnstileSuccess,
-                        'error-callback': onTurnstileError,
-                        'size': 'invisible' // Přidáno pro neviditelný widget
-                    });
-                    console.log('Renderování widgetu bylo spuštěno.');
-                } catch (e) {
-                    console.error('Chyba při pokusu o renderování widgetu:', e);
-                    onTurnstileError('render-error');
-                }
-            };
-            
-            // Co se stane, když se skriptu NEPODAŘÍ načíst (např. je blokován)
-            script.onerror = function() {
-                console.error('Nepodařilo se načíst externí skript Turnstile! Je blokován?');
-                onTurnstileError('script-load-error');
-            };
-            
-            document.head.appendChild(script);
-        }
-
-        // Spustíme načítání
-        loadTurnstile();
-
-
-        // Kód pro odeslání po kliknutí na tlačítko
-        button.addEventListener('click', () => {
-            if (button.disabled || !turnstileToken) {
-                console.warn('Kliknuto na tlačítko, ale je neaktivní nebo chybí token.');
-                return;
-            }
-
-            console.log('Tlačítko stisknuto, odesílám token na server...');
-            button.disabled = true;
-            button.innerText = 'Moment...';
-
+        function handleRedirect(token) {
             const formData = new FormData();
-            formData.append('cf-turnstile-response', turnstileToken);
+            formData.append('cf-turnstile-response', token);
             
             fetch('/redirect', {
                 method: 'POST',
@@ -198,21 +139,36 @@
                 redirect: 'manual'
             })
             .then(response => {
-                console.log('Odpověď ze serveru přijata, status:', response.status);
                 if (response.status === 302 && response.headers.has('Location')) {
-                    console.log('Přesměrování bylo úspěšné, přesměrovávám na:', response.headers.get('Location'));
                     window.location.href = response.headers.get('Location');
                 } else {
-                    console.error('Server nevrátil platné přesměrování.');
-                    response.text().then(text => console.error('Odpověď serveru:', text));
-                    onTurnstileError('server-redirect-failed');
+                    onTurnstileError();
                 }
             })
-            .catch(error => {
-                console.error('Došlo k chybě při odesílání požadavku na server (fetch):', error);
-                onTurnstileError('fetch-error');
+            .catch(onTurnstileError);
+        }
+
+        function onButtonClick() {
+            button.disabled = true;
+            button.innerText = 'Ověřuji...';
+
+            // Spustíme neviditelnou výzvu
+            turnstile.render('#turnstile-widget-container', {
+                sitekey: '0x4AAAAAAB3S4iz1VmOz-kYh',
+                callback: function(token) {
+                    // Když dostaneme token, pošleme ho na server
+                    handleRedirect(token);
+                },
+                'error-callback': function() {
+                    onTurnstileError();
+                }
             });
-        });
+        }
+        
+        // Funkce, která se zavolá, až bude API od Cloudflare připraveno
+        function onTurnstileApiReady() {
+            button.addEventListener('click', onButtonClick);
+        }
     </script>
 </body>
 </html>
