@@ -7,6 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         :root {
             --background-color: #0d0d1a;
@@ -88,11 +89,15 @@
             <h1>Kris</h1>
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
             
-            <div id="turnstile-widget-container"></div>
+            <div class="cf-turnstile"
+                 data-sitekey="0x4AAAAAAB3S4iz1VmOz-kYh"
+                 data-callback="onTurnstileSuccess"
+                 data-error-callback="onTurnstileError"
+                 data-size="invisible"></div>
             
             <button type="button" id="cta-button" class="cta-button">Vstupte</button>
         </section>
-
+        
         <section class="card">
             <h2>Něco málo o mně</h2>
             <p class="about-text">
@@ -119,17 +124,14 @@
         <p>&copy; 2025 Kris. Všechna práva vyhrazena. Vstupem potvrzujete, že jste starší 18 let.</p>
     </footer>
 
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileApiReady" async defer></script>
     <script>
         const button = document.getElementById('cta-button');
-
-        function onTurnstileError() {
-            // V případě chyby obnovíme tlačítko
-            button.disabled = false;
-            button.innerText = 'Chyba, zkuste to znovu';
-        }
         
-        function handleRedirect(token) {
+        // Tato funkce se zavolá automaticky, když Turnstile získá token
+        function onTurnstileSuccess(token) {
+            button.disabled = true;
+            button.innerText = 'Moment...';
+
             const formData = new FormData();
             formData.append('cf-turnstile-response', token);
             
@@ -142,33 +144,34 @@
                 if (response.status === 302 && response.headers.has('Location')) {
                     window.location.href = response.headers.get('Location');
                 } else {
-                    onTurnstileError();
+                    // Pokud server nevrátí přesměrování, přečteme a zobrazíme chybu
+                    response.json().then(errorData => {
+                        console.error('SERVER VRÁTIL CHYBU:', errorData);
+                        onTurnstileError();
+                    });
                 }
             })
-            .catch(onTurnstileError);
-        }
-
-        function onButtonClick() {
-            button.disabled = true;
-            button.innerText = 'Ověřuji...';
-
-            // Spustíme neviditelnou výzvu
-            turnstile.render('#turnstile-widget-container', {
-                sitekey: '0x4AAAAAAB3S4iz1VmOz-kYh',
-                callback: function(token) {
-                    // Když dostaneme token, pošleme ho na server
-                    handleRedirect(token);
-                },
-                'error-callback': function() {
-                    onTurnstileError();
-                }
+            .catch(err => {
+                console.error('CHYBA SÍTĚ:', err);
+                onTurnstileError();
             });
         }
-        
-        // Funkce, která se zavolá, až bude API od Cloudflare připraveno
-        function onTurnstileApiReady() {
-            button.addEventListener('click', onButtonClick);
+
+        function onTurnstileError() {
+            button.disabled = false;
+            button.innerText = 'Chyba, zkuste to znovu';
         }
+
+        // Neviditelný Turnstile musíme spustit kliknutím na tlačítko
+        button.addEventListener('click', () => {
+            // Po kliknutí se pokusíme spustit ověření
+            try {
+                turnstile.execute();
+            } catch (e) {
+                console.error("Chyba při spouštění Turnstile:", e);
+                onTurnstileError();
+            }
+        });
     </script>
 </body>
 </html>
