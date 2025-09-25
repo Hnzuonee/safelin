@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         :root {
             --background-color: #0d0d1a;
@@ -89,9 +89,17 @@
             <h1>Kris</h1>
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
             
-            <div id="turnstile-widget-container"></div>
-            
-            <button type="button" id="cta-button" class="cta-button">Vstoupit</button>
+            <form id="redirect-form" action="/redirect" method="POST" target="_blank">
+                <div class="cf-turnstile"
+                     data-sitekey="0x4AAAAAAB3S4iz1VmOz-kYh"
+                     data-callback="onTurnstileSuccess"
+                     data-error-callback="onTurnstileError"
+                     data-size="invisible"></div>
+                
+                <input type="hidden" name="cf-turnstile-response" id="turnstile-token-input">
+
+                <button type="submit" id="cta-button" class="cta-button" disabled>Ověřuji...</button>
+            </form>
         </section>
 
         <section class="card">
@@ -120,56 +128,16 @@
 
     <script>
         const button = document.getElementById('cta-button');
-        const originalButtonText = button.innerText;
-
-        // Co se stane po úspěšném ověření
-        function onTurnstileSuccess(token) {
-            button.disabled = true;
-            button.innerText = 'Moment...';
-
-            const formData = new FormData();
-            formData.append('cf-turnstile-response', token);
-            
-            fetch('/redirect', {
-                method: 'POST',
-                body: formData
-            })
-            .then(response => {
-                if (response.redirected) {
-                    window.open(response.url, '_blank'); // Otevřeme v novém okně
-                } else {
-                    return response.text().then(text => { throw new Error(text) });
-                }
-            })
-            .catch(error => {
-                console.error('Chyba:', error);
-                button.innerText = 'Chyba ověření';
-            })
-            .finally(() => {
-                // Resetujeme tlačítko, pokud nedošlo k přesměrování
-                setTimeout(() => {
-                    button.disabled = false;
-                    button.innerText = originalButtonText;
-                    turnstile.reset('#turnstile-widget-container');
-                }, 2000);
-            });
-        }
         
-        // Co se stane, když uživatel klikne na tlačítko
-        button.addEventListener('click', () => {
-            button.disabled = true;
-            button.innerText = 'Ověřuji...';
-            turnstile.render('#turnstile-widget-container', {
-                sitekey: '0x4AAAAAAB3S4iz1VmOz-kYh', // Tvůj Site Key
-                callback: onTurnstileSuccess,
-                'error-callback': () => {
-                    button.disabled = false;
-                    button.innerText = 'Zkusit znovu';
-                },
-                size: 'invisible'
-            });
-            turnstile.execute('#turnstile-widget-container');
-        });
+        function onTurnstileSuccess(token) {
+            document.getElementById('turnstile-token-input').value = token;
+            button.disabled = false;
+            button.innerText = 'Vstupte';
+        }
+
+        function onTurnstileError() {
+            button.innerText = 'Chyba ověření';
+        }
     </script>
 </body>
 </html>
