@@ -84,9 +84,14 @@
     </footer>
 
     <script>
+        // === ZDE ZAČÍNÁ UPRAVENÁ ČÁST ===
+
+        let turnstileToken = null; // Změna: Globální proměnná pro uložení tokenu
+
         // Callback funkce, kterou Turnstile zavolá po úspěšném ověření
         function onTurnstileSuccess(token) {
             document.getElementById('cta-button').disabled = false;
+            turnstileToken = token; // Změna: Uložíme si platný token
         }
 
         // Celá logika se spustí, až když je stránka plně načtená
@@ -98,7 +103,6 @@
             if (/Instagram/.test(userAgent)) {
                 ctaButton.disabled = true;
                 ctaButton.textContent = 'Otevřete v běžném prohlížeči';
-                // Ukončíme další provádění, aby nešlo tlačítko odemknout
                 return; 
             }
 
@@ -107,13 +111,17 @@
                 this.textContent = 'Načítám...';
                 this.disabled = true;
 
-                // Akce: Odeslání POST požadavku na naši serverless funkci
-                fetch('/redirect', { method: 'POST' })
-                    .catch(error => {
-                        console.error('Došlo k chybě při přesměrování:', error);
-                        this.textContent = 'Chyba! Zkuste to znovu.';
-                        this.disabled = false;
-                    });
+                // Akce: Odeslání POST požadavku i s tokenem na naši serverless funkci
+                fetch('/redirect', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: turnstileToken }) // Změna: Posíláme token v těle požadavku
+                })
+                .catch(error => {
+                    console.error('Došlo k chybě při přesměrování:', error);
+                    this.textContent = 'Chyba! Zkuste to znovu.';
+                    this.disabled = false;
+                });
             });
         });
     </script>
