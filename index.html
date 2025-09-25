@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="referrer" content="no-referrer">
+    <title>Kris | Exkluzivní Obsah</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background-color: #0d0d1a; color: #f0f0f0; margin: 0; padding: 0; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="card">
+            <img src="img/profil.jpg" alt="Profilová fotka Kris" class="profile-picture">
+            <h1>Kris</h1>
+            <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
+
+            <div id="ts-container"></div>
+            <button type="button" id="cta-button" class="cta-button">Vstupte</button>
+        </section>
+    </div>
+
+    <script>
+        const button = document.getElementById('cta-button');
+        let widgetId = null;
+
+        window.onload = () => {
+            try {
+                widgetId = turnstile.render('#ts-container', {
+                    sitekey: '0x4AAAAAAB3S4iz1VmOz-kYh',
+                    size: 'invisible',
+                    callback: onTurnstileSuccess,
+                    'error-callback': onTurnstileError
+                });
+            } catch (e) {
+                console.error('Turnstile render failed:', e);
+                onTurnstileError();
+            }
+        };
+
+        async function onTurnstileSuccess(token) {
+            button.disabled = true;
+            button.innerText = 'Moment...';
+
+            try {
+                const formData = new FormData();
+                formData.append('cf-turnstile-response', token);
+
+                const resp = await fetch('/redirect', {
+                    method: 'POST',
+                    body: formData,
+                    headers: { 'Accept': 'application/json' }
+                });
+
+                const data = await resp.json().catch(() => ({}));
+                if (resp.ok && data?.nonce) {
+                    window.location.href = `/go/${data.nonce}`;
+                    return;
+                }
+
+                console.error('SERVER CHYBA:', data || resp.status);
+                onTurnstileError();
+            } catch (err) {
+                console.error('CHYBA SÍTĚ:', err);
+                onTurnstileError();
+            } finally {
+                try { turnstile.reset(widgetId); } catch {}
+            }
+        }
+
+        function onTurnstileError() {
+            button.disabled = false;
+            button.innerText = 'Chyba, zkuste to znovu';
+        }
+
+        button.addEventListener('click', () => {
+            if (!widgetId) return onTurnstileError();
+            try { turnstile.execute(widgetId); } catch (e) { onTurnstileError(); }
+        });
+    </script>
+</body>
+</html>
