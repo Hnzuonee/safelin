@@ -80,7 +80,6 @@
         .credentials li { margin-bottom: 10px; padding-left: 25px; position: relative; }
         .credentials li::before { content: '✓'; color: var(--primary-cyan); position: absolute; left: 0; }
         .footer { text-align: center; padding: 20px 0; font-size: 0.9rem; opacity: 0.6; }
-        .cf-turnstile { margin: 0 auto 20px auto; }
     </style>
 </head>
 <body>
@@ -94,9 +93,12 @@
                 <div class="cf-turnstile"
                      data-sitekey="0x4AAAAAAB3S4iz1VmOz-kYh"
                      data-callback="onTurnstileSuccess"
-                     data-error-callback="onTurnstileError"></div>
+                     data-error-callback="onTurnstileError"
+                     data-size="invisible"></div>
+                
+                <input type="hidden" name="cf-turnstile-response" id="turnstile-token-input">
 
-                <button type="submit" id="cta-button" class="cta-button" disabled>Vstupte</button>
+                <button type="submit" id="cta-button" class="cta-button" disabled>Ověřuji...</button>
             </form>
         </section>
 
@@ -130,11 +132,13 @@
         const button = document.getElementById('cta-button');
         
         function onTurnstileSuccess(token) {
+            document.getElementById('turnstile-token-input').value = token;
             button.disabled = false;
+            button.innerText = 'Vstupte';
         }
 
         function onTurnstileError() {
-            // Nic neděláme, uživatel to může zkusit znovu
+            button.innerText = 'Chyba ověření';
         }
     </script>
 </body>
