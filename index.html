@@ -24,7 +24,7 @@
     <!-- Turnstile widget: nepoužívej "invisible". -->
     <div id="ts-widget"
          class="cf-turnstile"
-         data-sitekey="PASTE_YOUR_SITE_KEY_HERE"
+         data-sitekey="0x4AAAAAAB3ZQneX4eafRRnF"
          data-size="flexible"
          data-callback="onTsSuccess"
          data-error-callback="onTsError"
@@ -48,10 +48,43 @@
     function setBusy(busy) { $btn.disabled = busy; isExecuting = busy; }
 
     // Turnstile callbacks
-    window.onTsSuccess = function(token) {
+    window.onTsSuccess = async function(token) {
       lastToken = token || "";
-      setMsg("Ověřeno, pokračuji…");
-      doRedirect(lastToken);
+      setMsg("Ověřeno, připravuji vstup…");
+      // Krok A: výměna TS tokenu za jednorázový ticket
+      try {
+        const res = await fetch('/verify', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: lastToken })
+        });
+
+        if (!res.ok) {
+          let data = null; try { data = await res.json(); } catch {}
+          setBusy(false);
+          setMsg(data?.error ? `Server chyba: ${data.error}` : `Server chyba (${res.status}).`);
+          if (window.turnstile) turnstile.reset('#ts-widget');
+          lastToken = "";
+          return;
+        }
+
+        const data = await res.json();
+        if (!data?.ticket) {
+          setBusy(false);
+          setMsg("Chybí ticket. Zkus to znovu.");
+          if (window.turnstile) turnstile.reset('#ts-widget');
+          lastToken = "";
+          return;
+        }
+
+        // Krok B: přesměruj na /go/{ticket} (server provede 303 na cílovou URL)
+        window.location.href = `/go/${encodeURIComponent(data.ticket)}`;
+      } catch (e) {
+        setBusy(false);
+        setMsg("Síťová chyba. Zkus to znovu.");
+        if (window.turnstile) turnstile.reset('#ts-widget');
+        lastToken = "";
+      }
     };
 
     window.onTsError = function() {
@@ -64,70 +97,16 @@
       setMsg("Čas ověření vypršel. Zkus to znovu.");
     };
 
-    async function doRedirect(token) {
-      try {
-        if (!token) {
-          setBusy(false);
-          setMsg("Token chybí. Zkus tlačítko znovu.");
-          return;
-        }
-
-        // GET varianta (držím se tvého dřívějšího kódu)
-        const res = await fetch(`/redirect?token=${encodeURIComponent(token)}`, {
-          method: 'GET',
-          redirect: 'manual' // čekáme 303 ze serveru
-        });
-
-        // Pokud nám server rovnou vrátí 303/Location, prohlížeč ji sám nenasleduje při redirect: 'manual'.
-        // Vezmeme Location a přesměrujeme.
-        if (res.status === 303 || res.status === 302 || res.status === 301) {
-          const loc = res.headers.get('Location');
-          if (loc) {
-            window.location.href = loc;
-            return;
-          }
-        }
-
-        // V opačném případě čekáme JSON s chybou / infem
-        let data = null;
-        try { data = await res.json(); } catch {}
-
-        if (res.ok && data && data.redirect) {
-          window.location.href = data.redirect;
-          return;
-        }
-
-        setBusy(false);
-        setMsg(data && data.error ? `Server chyba: ${data.error}` : `Server chyba (${res.status}).`);
-        // nový pokus vyžaduje nový token
-        if (window.turnstile) turnstile.reset('#ts-widget');
-        lastToken = "";
-      } catch (e) {
-        setBusy(false);
-        setMsg("Síťová chyba. Zkus to znovu.");
-        if (window.turnstile) turnstile.reset('#ts-widget');
-        lastToken = "";
-      }
-    }
-
     $btn.addEventListener('click', async () => {
       if (isExecuting) return;
       setBusy(true);
       setMsg("Ověřuji…");
 
-      // Pokud už máme token (už proběhlo ověření), rovnou pokračuj.
-      if (lastToken) {
-        doRedirect(lastToken);
-        return;
-      }
-
-      // Spusť ověření Turnstile – u viditelného widgetu stačí reset/čekat na callback.
+      // U viditelného widgetu jen resetneme a čekáme na callback (onTsSuccess)
       try {
         if (window.turnstile) {
-          // Když widget visí v "executing" stavu, resetni
           turnstile.reset('#ts-widget');
         }
-        // U "flexible/normal/compact" se challenge zobrazí a po úspěchu zavolá onTsSuccess()
       } catch (e) {
         setBusy(false);
         setMsg("Chyba při spuštění ověření.");
