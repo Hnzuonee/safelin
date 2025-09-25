@@ -13,7 +13,7 @@ async function verifyTurnstileToken(token, secretKey) {
 }
 
 /**
- * Hlavní funkce, která zpracovává požadavky.
+ * Zpracovává POST požadavky, ověří token, zaloguje výsledek a přesměruje.
  */
 export async function onRequestPost(context) {
     try {
@@ -28,15 +28,26 @@ export async function onRequestPost(context) {
             console.error("Chyba: Chybí token nebo konfigurační proměnné.");
             return new Response('Chyba konfigurace serveru.', { status: 500 });
         }
+        
+        const headers = request.headers;
+        const ip = headers.get('cf-connecting-ip') || 'N/A';
+        const country = headers.get('cf-ipcountry') || 'N/A';
+        const userAgent = headers.get('user-agent') || 'N/A';
 
         const isValid = await verifyTurnstileToken(turnstileToken, secretKey);
 
         if (isValid) {
+            // ✅ Logujeme úspěch
+            console.log(`[SUCCESS] Ověření úspěšné. IP: ${ip}, Země: ${country}`);
+            
             return new Response(null, {
                 status: 302,
-                headers: { 'Location': destinationURL, 'Cache-Control': 'no-store' }
+                headers: { 'Location': destinationURL, 'Cache-control': 'no-store' }
             });
         } else {
+            // ❌ Logujeme bota
+            console.log(`[BOT DETECTED] Ověření selhalo. IP: ${ip}, Země: ${country}, User-Agent: ${userAgent}`);
+            
             return new Response('Ověření selhalo. Jste robot?', { status: 403 });
         }
     } catch (error) {
