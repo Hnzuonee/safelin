@@ -77,8 +77,8 @@
           return;
         }
 
-        // Krok B: přesměruj na /go/{ticket} (server provede 303 na cílovou URL)
-        window.location.href = `/go/${encodeURIComponent(data.ticket)}`;
+        // Krok B: redirect na /go?ticket=...
+        window.location.href = `/go?ticket=${encodeURIComponent(data.ticket)}`;
       } catch (e) {
         setBusy(false);
         setMsg("Síťová chyba. Zkus to znovu.");
