@@ -13,12 +13,14 @@ async function verifyTurnstileToken(token, secretKey) {
 }
 
 /**
- * Zpracovává POST požadavky, ověří token a přesměruje.
+ * Zpracovává POST požadavky z formuláře, ověří token a přesměruje.
  */
 export async function onRequestPost(context) {
     try {
-        const body = await context.request.json();
-        const token = body.token;
+        // ZMĚNA ZDE: Načítáme data z formuláře místo JSON
+        const formData = await context.request.formData();
+        const token = formData.get('cf-turnstile-response'); // Název políčka je dán Cloudflarem
+        
         const secretKey = context.env.TURNSTILE_SECRET_KEY;
 
         if (!token || !secretKey) {
@@ -28,7 +30,7 @@ export async function onRequestPost(context) {
         const isValid = await verifyTurnstileToken(token, secretKey);
 
         if (isValid) {
-            const destinationURL = "https://onlyfans.com/jentvojekiks/c9"; // !! Zde doplň finální URL !!
+            const destinationURL = "https://onlyfans.com/jentvojekiks/c9";
             return new Response(null, {
                 status: 302,
                 headers: { 'Location': destinationURL, 'Cache-Control': 'no-store' }
