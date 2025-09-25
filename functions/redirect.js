@@ -1,34 +1,17 @@
 export async function onRequestPost(context) {
     try {
-        const { env, request } = context;
-        const secretKey = env.TURNSTILE_SECRET_KEY;
-        const destinationURL = env.DESTINATION_URL;
-
-        const formData = await request.formData();
-        const turnstileToken = formData.get('cf-turnstile-response');
-
-        if (!turnstileToken || !secretKey || !destinationURL) {
-            return new Response('Chyba konfigurace nebo chybějící token.', { status: 400 });
-        }
+        const secretKey = context.env.TURNSTILE_SECRET_KEY;
         
-        const verificationURL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-        const response = await fetch(verificationURL, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-urlencoded' },
-            body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(turnstileToken)}`
-        });
-        
-        const result = await response.json();
-
-        if (result.success) {
-            return new Response(null, {
-                status: 302,
-                headers: { 'Location': destinationURL, 'Cache-Control': 'no-store' }
-            });
+        if (secretKey && secretKey.length > 10) {
+            // Pokud klíč existuje, ukážeme jeho prvních 5 a posledních 5 znaků
+            const partialKey = `${secretKey.substring(0, 5)}...${secretKey.substring(secretKey.length - 5)}`;
+            return new Response(`Server dostal Secret Key: ${partialKey}`, { status: 400 });
         } else {
-            return new Response('Ověření selhalo. Jste robot?', { status: 403 });
+            // Pokud je klíč prázdný nebo poškozený
+            return new Response('CHYBA: Server nedostal žádný platný Secret Key!', { status: 400 });
         }
+
     } catch (error) {
-        return new Response('Došlo k interní chybě na serveru.', { status: 500 });
+        return new Response(`Došlo k chybě při čtení proměnné: ${error.message}`, { status: 500 });
     }
 }
