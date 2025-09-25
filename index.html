@@ -21,7 +21,7 @@
     <h1>Pokračovat</h1>
     <p>Pro bezpečné pokračování ověř prosím, že nejsi robot.</p>
 
-    <!-- Turnstile widget: nepoužívej "invisible". -->
+    <!-- Turnstile widget -->
     <div id="ts-widget"
          class="cf-turnstile"
          data-sitekey="0x4AAAAAAB3ZQneX4eafRRnF"
@@ -51,14 +51,12 @@
     window.onTsSuccess = async function(token) {
       lastToken = token || "";
       setMsg("Ověřeno, připravuji vstup…");
-      // Krok A: výměna TS tokenu za jednorázový ticket
       try {
         const res = await fetch('/verify', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: lastToken })
         });
-
         if (!res.ok) {
           let data = null; try { data = await res.json(); } catch {}
           setBusy(false);
@@ -67,7 +65,6 @@
           lastToken = "";
           return;
         }
-
         const data = await res.json();
         if (!data?.ticket) {
           setBusy(false);
@@ -76,8 +73,6 @@
           lastToken = "";
           return;
         }
-
-        // Krok B: redirect na /go?ticket=...
         window.location.href = `/go?ticket=${encodeURIComponent(data.ticket)}`;
       } catch (e) {
         setBusy(false);
@@ -91,7 +86,6 @@
       setBusy(false);
       setMsg("Chyba ověření. Zkus to prosím znovu.");
     };
-
     window.onTsTimeout = function() {
       setBusy(false);
       setMsg("Čas ověření vypršel. Zkus to znovu.");
@@ -101,8 +95,6 @@
       if (isExecuting) return;
       setBusy(true);
       setMsg("Ověřuji…");
-
-      // U viditelného widgetu jen resetneme a čekáme na callback (onTsSuccess)
       try {
         if (window.turnstile) {
           turnstile.reset('#ts-widget');
