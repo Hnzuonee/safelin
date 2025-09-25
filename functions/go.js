@@ -16,7 +16,6 @@ export async function onRequestGet({ request, env }) {
     const now = Math.floor(Date.now() / 1000);
     if (!issuedAt || !ttl || now > issuedAt + ttl) return json({ error: "expired" }, 403);
 
-    // one-time spotřeba
     const key = `t:${id}`;
     const exists = await env.TICKETS.get(key);
     if (!exists) return json({ error: "already used or unknown" }, 403);
@@ -37,7 +36,6 @@ function json(obj, status = 200) {
     headers: { "Content-Type": "application/json; charset=utf-8" }
   });
 }
-
 async function hmac(secret, msg) {
   const key = await crypto.subtle.importKey(
     "raw",
