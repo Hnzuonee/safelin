@@ -1,54 +1,60 @@
-// functions/redirect.js
-export async function onRequestGet(context) {
-  const { request, env } = context;
-  const url = new URL(request.url);
-  const token = url.searchParams.get('token');
-
-  if (!token) {
-    return new Response(JSON.stringify({ error: 'Missing token' }), {
-      status: 400,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
-
-  // Ověření Turnstile (server-to-server)
-  const form = new URLSearchParams();
-  form.append('secret', env.TURNSTILE_SECRET);
-  form.append('response', token);
-
-  const ip = request.headers.get('cf-connecting-ip') || '';
-  if (ip) form.append('remoteip', ip);
-
-  const verify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
-    method: 'POST',
-    body: form,
-  });
-
-  let result;
+// /functions/verify.js
+export async function onRequestPost({ request, env }) {
   try {
-    result = await verify.json();
-  } catch {
-    return new Response(JSON.stringify({ error: 'Verify parse failed' }), {
-      status: 502,
-      headers: { 'Content-Type': 'application/json' },
+    const body = await request.json().catch(() => null);
+    if (!body?.token) return json({ error: "missing token" }, 400);
+
+    // 1) Turnstile verify
+    const form = new URLSearchParams();
+    form.append("secret", env.TURNSTILE_SECRET || "");
+    form.append("response", body.token);
+
+    const ip = request.headers.get("cf-connecting-ip") || "";
+    if (ip) form.append("remoteip", ip);
+
+    const ver = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+      method: "POST",
+      body: form
     });
+
+    const res = await ver.json().catch(() => ({}));
+    if (!res?.success) {
+      // volitelně: res["error-codes"]
+      return json({ error: "verification failed" }, 403);
+    }
+
+    // 2) Vystav ticket (one-time, TTL ~60s)
+    const id = cryptoRandomId();
+    const ttl = 60; // sekund
+    const issuedAt = Math.floor(Date.now() / 1000);
+    const payload = `${id}.${issuedAt}.${ttl}`;
+    const sig = await hmac(env.SIGNING_SECRET, payload);
+
+    // 3) Ulož do KV pro jednorázové použití
+    await env.TICKETS.put(`t:${id}`, "1", { expirationTtl: ttl });
+
+    return json({ ticket: `${id}.${issuedAt}.${ttl}.${sig}` }, 200);
+  } catch (e) {
+    return json({ error: "server error" }, 500);
   }
+}
 
-  if (!result.success) {
-    return new Response(JSON.stringify({ error: 'Turnstile failed' }), {
-      status: 403,
-      headers: { 'Content-Type': 'application/json' },
-    });
-  }
+function json(obj, status = 200) {
+  return new Response(JSON.stringify(obj), {
+    status,
+    headers: { "Content-Type": "application/json; charset=utf-8" }
+  });
+}
 
-  // Volitelné zpevnění:
-  // if (result.hostname !== 'tvuj-web.cz' && result.hostname !== 'tvuj-projekt.pages.dev') {
-  //   return new Response('Bad hostname', { status: 403 });
-  // }
-  // if (typeof result.score === 'number' && result.score < 0.3) {
-  //   return new Response('Low score', { status: 403 });
-  // }
+function cryptoRandomId() {
+  const a = new Uint8Array(16);
+  crypto.getRandomValues(a);
+  return [...a].map(x => x.toString(16).padStart(2, "0")).join("");
+}
 
-  // Bezpečný redirect – cílová URL jen v ENV
-  return Response.redirect(env.DESTINATION_URL, 302);
+async function hmac(secret, msg) {
+  const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
+  const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
+  // URL-safe base64 (bez '=' a s -/_ pokud chceš; pro jednoduchost klasická base64 bez '='):
+  return btoa(String.fromCharCode(...new Uint8Array(sig))).replace(/=+$/,'');
 }
