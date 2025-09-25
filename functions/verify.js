@@ -15,21 +15,18 @@ export async function onRequestPost({ request, env }) {
       method: "POST",
       body: form
     });
-
     const res = await ver.json().catch(() => ({}));
     if (!res?.success) {
-      // volitelně: res["error-codes"]
       return json({ error: "verification failed" }, 403);
     }
 
     // 2) Vystav ticket (one-time, TTL ~60s)
     const id = cryptoRandomId();
-    const ttl = 60; // sekund
+    const ttl = 60;
     const issuedAt = Math.floor(Date.now() / 1000);
     const payload = `${id}.${issuedAt}.${ttl}`;
     const sig = await hmac(env.SIGNING_SECRET, payload);
 
-    // 3) Ulož do KV pro jednorázové použití
     await env.TICKETS.put(`t:${id}`, "1", { expirationTtl: ttl });
 
     return json({ ticket: `${id}.${issuedAt}.${ttl}.${sig}` }, 200);
@@ -44,13 +41,11 @@ function json(obj, status = 200) {
     headers: { "Content-Type": "application/json; charset=utf-8" }
   });
 }
-
 function cryptoRandomId() {
   const a = new Uint8Array(16);
   crypto.getRandomValues(a);
   return [...a].map(x => x.toString(16).padStart(2, "0")).join("");
 }
-
 async function hmac(secret, msg) {
   const key = await crypto.subtle.importKey("raw", new TextEncoder().encode(secret), { name: "HMAC", hash: "SHA-256" }, false, ["sign"]);
   const sig = await crypto.subtle.sign("HMAC", key, new TextEncoder().encode(msg));
