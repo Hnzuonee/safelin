@@ -1,35 +1,51 @@
-// functions/redirect.ts (Cloudflare Pages Functions)
-export const onRequestGet: PagesFunction<{
-  TURNSTILE_SECRET: string,
-  DESTINATION_URL: string
-}> = async ({ request, env }) => {
+// functions/redirect.js
+export async function onRequestGet(context) {
+  const { request, env } = context;
   const url = new URL(request.url);
   const token = url.searchParams.get('token');
+
   if (!token) {
-    return new Response(JSON.stringify({ error: 'Missing token' }), { status: 400 });
+    return new Response(JSON.stringify({ error: 'Missing token' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
-  // Ověření Turnstile server-to-server
+  // Turnstile server-side ověření
   const form = new URLSearchParams();
   form.append('secret', env.TURNSTILE_SECRET);
   form.append('response', token);
+
   const ip = request.headers.get('cf-connecting-ip') || '';
   if (ip) form.append('remoteip', ip);
 
   const verify = await fetch('https://challenges.cloudflare.com/turnstile/v0/siteverify', {
     method: 'POST',
-    body: form
+    body: form,
   });
-  const result = await verify.json();
 
-  if (!result.success) {
-    // Volitelně zalogovat result, score, error-codes
-    return new Response(JSON.stringify({ error: 'Turnstile failed' }), { status: 403 });
+  let result;
+  try {
+    result = await verify.json();
+  } catch {
+    return new Response(JSON.stringify({ error: 'Verify parse failed' }), {
+      status: 502,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
-  // Doplňkové kontroly — hostname/action/score/age
-  // if (result.hostname !== 'tvoje-domena.cz') return new Response('Bad hostname', { status: 403 });
+  if (!result.success) {
+    // volitelně: console.log(result) pro debug (v dev)
+    return new Response(JSON.stringify({ error: 'Turnstile failed' }), {
+      status: 403,
+      headers: { 'Content-Type': 'application/json' },
+    });
+  }
 
-  // Tady NIKDY neposílej cílové URL v JSON — přímo redirect:
+  // Doplňkové kontroly (volitelné):
+  // if (result.hostname !== 'tvoje-domena.cz') return new Response('Bad hostname', { status: 403 });
+  // if (typeof result.score === 'number' && result.score < 0.3) return new Response('Low score', { status: 403 });
+
+  // Bezpečné přesměrování – URL držíme jen v ENV
   return Response.redirect(env.DESTINATION_URL, 302);
-};
+}
