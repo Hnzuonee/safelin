@@ -1,35 +1,47 @@
 export async function onRequestPost(context) {
     try {
-        const { env, request } = context;
-        const secretKey = env.TURNSTILE_SECRET_KEY;
+        const { request, env } = context;
+        const body = await request.formData();
+        
+        // Získání tokenu z formuláře a tajného klíče + cílové URL z proměnných prostředí
+        const token = body.get('cf-turnstile-response');
+        const secret = env.TURNSTILE_SECRET_KEY;
         const destinationURL = env.DESTINATION_URL;
 
-        const formData = await request.formData();
-        const turnstileToken = formData.get('cf-turnstile-response');
-
-        if (!turnstileToken || !secretKey || !destinationURL) {
-            return new Response('Chyba konfigurace nebo chybějící token.', { status: 400 });
+        // Kontrola, zda jsou všechny potřebné údaje k dispozici
+        if (!token || !secret || !destinationURL) {
+            return new Response('Chyba serveru: Chybí potřebné údaje pro ověření.', { status: 500 });
         }
-        
-        const verificationURL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-        const response = await fetch(verificationURL, {
+
+        // Sestavení dat pro ověřovací požadavek na Cloudflare
+        const formData = new FormData();
+        formData.append('secret', secret);
+        formData.append('response', token);
+        // Můžeme přidat i IP adresu klienta pro dodatečnou bezpečnost, ale není to nutné
+        // formData.append('remoteip', request.headers.get('CF-Connecting-IP'));
+
+        const url = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
+
+        // Odeslání požadavku na ověření
+        const result = await fetch(url, {
+            body: formData,
             method: 'POST',
-            // ZDE JE OPRAVA - Jen jeden správný header
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(turnstileToken)}`
         });
-        
-        const result = await response.json();
 
-        if (result.success) {
-            return new Response(null, {
-                status: 302,
-                headers: { 'Location': destinationURL, 'Cache-Control': 'no-store' }
-            });
+        const outcome = await result.json();
+
+        // Pokud ověření proběhlo úspěšně, přesměrujeme uživatele
+        if (outcome.success) {
+            return Response.redirect(destinationURL, 302);
         } else {
-            return new Response('Ověření selhalo. Jste robot?', { status: 403 });
+            // Pokud ověření selhalo, vrátíme chybu
+            console.error('Ověření Turnstile selhalo:', outcome['error-codes'] || 'Žádné chybové kódy');
+            return new Response('Ověření se nezdařilo. Jste si jistí, že nejste robot?', { status: 403 });
         }
+
     } catch (error) {
-        return new Response('Došlo k interní chybě na serveru.', { status: 500 });
+        // Zpracování neočekávaných chyb
+        console.error('Došlo k interní chybě:', error);
+        return new Response('Na serveru došlo k neočekávané chybě.', { status: 500 });
     }
 }
