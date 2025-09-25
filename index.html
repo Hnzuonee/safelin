@@ -98,23 +98,6 @@
             opacity: 0.7;
             cursor: not-allowed;
             animation: none;
-            background: #333;
-            box-shadow: none;
-        }
-        /* NOVÝ STYL PRO LOADER */
-        .progress-bar {
-            position: absolute;
-            top: 0;
-            left: 0;
-            height: 100%;
-            width: 0%;
-            background-color: rgba(255, 255, 255, 0.2);
-            border-radius: 50px;
-            transition: width 0.1s linear;
-        }
-        .button-text {
-            position: relative;
-            z-index: 2;
         }
         .gallery {
             display: grid;
@@ -171,7 +154,7 @@
 <body>
     <div class="container">
         <section class="card">
-<img src="img/profil.jpg" alt="Profilová fotka Kris" class="profile-picture">
+            <img src="img/profil.jpg" alt="Profilová fotka Kris" class="profile-picture">
             <h1>Kris</h1>
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
 
@@ -183,8 +166,7 @@
                      data-size="invisible"></div>
 
                 <button type="submit" id="cta-button" class="cta-button" disabled>
-                    <div id="progress-bar" class="progress-bar"></div>
-                    <span id="button-text" class="button-text">Ověřuji...</span>
+                    <span id="button-text"></span>
                 </button>
             </form>
         </section>
@@ -194,12 +176,11 @@
             <p class="about-text">
                 Jsem Kris, tvůrkyně, která miluje posouvání hranic a sdílení své nejautentičtější stránky. Na mé stránce najdeš exkluzivní obsah, který jinde neuvidíš. Pojďme se bavit!
             </p>
-  <div class="gallery">
-    <img src="img/galerie-01.jpeg" alt="Ukázka fotky z galerie 1">
-    <img src="img/galerie-02.jpeg" alt="Ukázka fotky z galerie 2">
-    <img src="img/galerie-03.jpeg" alt="Ukázka fotky z galerie 3">
-    <img src="img/galerie-04.jpeg" alt="Ukázka fotky z galerie 4">
-</div>
+            <div class="gallery">
+                <img src="img/galerie-02.jpg" alt="Ukázka fotky z galerie 2">
+                <img src="img/galerie-03.jpg" alt="Ukázka fotky z galerie 3">
+                <img src="img/galerie-04.jpg" alt="Ukázka fotky z galerie 4">
+            </div>
         </section>
         <section class="card credentials">
             <h2>Co na tebe čeká?</h2>
@@ -219,38 +200,32 @@
     <script>
         const button = document.getElementById('cta-button');
         const buttonText = document.getElementById('button-text');
-        const progressBar = document.getElementById('progress-bar');
-        let loaderInterval;
+        let countdownInterval;
 
-        // Spustíme loader hned po načtení stránky
         document.addEventListener('DOMContentLoaded', () => {
-            let width = 0;
-            // Simulujeme načítání po dobu 2.5 sekundy
-            loaderInterval = setInterval(() => {
-                if (width >= 100) {
-                    // Pokud by Turnstile neodpověděl, loader se zastaví
-                    // a čeká na callback
+            let count = 3;
+            buttonText.innerText = `Ověřuji ${count}...`;
+
+            countdownInterval = setInterval(() => {
+                count--;
+                if (count > 0) {
+                    buttonText.innerText = `Ověřuji ${count}...`;
                 } else {
-                    width++;
-                    progressBar.style.width = width + '%';
+                    buttonText.innerText = 'Moment...';
+                    clearInterval(countdownInterval);
                 }
-            }, 25); // 25ms * 100 = 2500ms = 2.5s
+            }, 1000);
         });
 
-        // Co se stane, když Turnstile úspěšně ověří
         function onTurnstileSuccess() {
-            clearInterval(loaderInterval); // Zastavíme animaci
-            progressBar.style.width = '100%'; // Dokončíme progress bar
-            buttonText.innerText = 'Vstupte'; // Změníme text
-            button.disabled = false; // Povolíme tlačítko
+            clearInterval(countdownInterval);
+            buttonText.innerText = 'Vstupte';
+            button.disabled = false;
         }
 
-        // Co se stane, když Turnstile selže
         function onTurnstileError() {
-            clearInterval(loaderInterval); // Zastavíme animaci
+            clearInterval(countdownInterval);
             buttonText.innerText = 'Chyba ověření';
-            progressBar.style.backgroundColor = '#ff4d4d'; // Změníme barvu na červenou
-            progressBar.style.width = '100%';
         }
     </script>
 </body>
