@@ -14,7 +14,7 @@ export async function onRequestPost(context) {
         const verificationURL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
         const response = await fetch(verificationURL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/x-urlencoded' },
+            // ZDE JE OPRAVA - Jen jeden správný header
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(turnstileToken)}`
         });
@@ -32,3 +32,4 @@ export async function onRequestPost(context) {
     } catch (error) {
         return new Response('Došlo k interní chybě na serveru.', { status: 500 });
     }
+}
