@@ -5,9 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Jméno Modelky | Exkluzivní Obsah</title>
     <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
-    
     <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit&onload=onloadTurnstileCallback" async defer></script>
-    
     <style>
         :root { --background-color: #0d0d1a; --primary-pink: #f900ff; --primary-cyan: #00f2ff; --text-color: #f0f0f0; --surface-color: rgba(26, 26, 41, 0.6); --glow-color-1: rgba(249, 0, 255, 0.5); --glow-color-2: rgba(0, 242, 255, 0.5); }
         body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; background: linear-gradient(-45deg, #0d0d1a, #1a0d1a, #0d1a1a, #0d0d1a); background-size: 400% 400%; animation: gradientBG 20s ease infinite; }
@@ -18,16 +16,9 @@
         h1 { font-size: 2.5rem; font-weight: 900; text-shadow: 0 0 8px var(--glow-color-2); }
         .bio-short { font-size: 1.1rem; opacity: 0.8; margin-bottom: 30px; }
         .cta-button { font-family: 'Poppins', sans-serif; color: white; border: none; border-radius: 50px; padding: 18px 45px; font-size: 1.2rem; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 1px; background: linear-gradient(-45deg, var(--primary-pink), var(--primary-cyan)); background-size: 400% 400%; animation: gradientBG 8s ease infinite; box-shadow: 0 0 20px var(--glow-color-1), 0 0 30px var(--glow-color-2); }
-        .cta-button:hover { transform: translateY(-5px) scale(1.05); box-shadow: 0 0 30px var(--glow-color-1), 0 0 45px var(--glow-color-2); }
+        .cta-button:hover:not(:disabled) { transform: translateY(-5px) scale(1.05); box-shadow: 0 0 30px var(--glow-color-1), 0 0 45px var(--glow-color-2); }
+        .cta-button:disabled { opacity: 0.5; cursor: not-allowed; animation: none; box-shadow: none; }
         .disclaimer { font-size: 0.8rem; opacity: 0.6; margin-top: 15px; }
-        .divider { height: 1px; background: linear-gradient(90deg, transparent, var(--primary-pink), transparent); margin: 40px 0; border: 0; }
-        .section-title { text-align: center; font-size: 1.8rem; font-weight: 700; margin-bottom: 20px; text-transform: uppercase; text-shadow: 0 0 5px var(--glow-color-2); }
-        .stats-and-bio { display: flex; flex-direction: column; gap: 30px; margin-top: 40px; }
-        @media (min-width: 768px) { .stats-and-bio { flex-direction: row; align-items: flex-start; } .stats-card { flex: 0 0 250px; } .bio-long { flex: 1; text-align: left; } }
-        .stats-card { background: var(--surface-color); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 16px; padding: 20px; display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
-        .stat-item { text-align: center; } .stat-item .value { font-weight: 700; font-size: 1.1rem; } .stat-item .label { font-size: 0.8rem; opacity: 0.7; }
-        .gallery { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 40px; }
-        .gallery-item img { width: 100%; height: 100%; object-fit: cover; border-radius: 12px; display: block; }
         .footer { text-align: center; padding: 40px 0 20px 0; font-size: 0.8rem; opacity: 0.5; }
         .footer a { color: var(--text-color); text-decoration: none; margin: 0 10px; } .footer a:hover { text-decoration: underline; }
     </style>
@@ -39,13 +30,17 @@
             <h1>Kris</h1>
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
             
-            <div id="turnstile-container"></div>
-            
-            <button id="cta-button" class="cta-button">Odemknout exkluzivní obsah</button>
-            <p class="disclaimer">Kliknutím potvrzujete, že jste plnoletí.</p>
-        </section>
+            <form action="/redirect" method="POST">
+                <div class="cf-turnstile" data-sitekey="0x4AAAAAAB3RmXvueyfl3EU_" data-callback="onTurnstileSuccess"></div>
+                
+                <input type="hidden" name="cf-turnstile-response" id="turnstile-token-input">
 
-        </div>
+                <button type="submit" id="cta-button" class="cta-button" disabled>Moje osobní stránka</button>
+            </form>
+
+            <p class="disclaimer">Kliknutím potvrzujete, že jste plnoletí a souhlasíte s podmínkami.</p>
+        </section>
+    </div>
     
     <footer class="footer">
         <p>&copy; 2025 Kris. Všechna práva vyhrazena.</p>
@@ -53,40 +48,15 @@
     </footer>
 
     <script>
-        let turnstileToken = null;
-
+        // Callback funkce, kterou Turnstile zavolá po úspěšném ověření
         function onTurnstileSuccess(token) {
-            turnstileToken = token;
-            const ctaButton = document.getElementById('cta-button');
-            ctaButton.textContent = 'Načítám...';
-            
-            fetch('/redirect', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: turnstileToken })
-            })
-            .catch(error => {
-                console.error('Došlo k chybě při přesměrování:', error);
-                ctaButton.textContent = 'Chyba! Zkuste to znovu.';
-            });
+            // ZMĚNA ZDE: Místo fetch jen vyplníme skryté políčko a odemkneme tlačítko
+            document.getElementById('turnstile-token-input').value = token;
+            document.getElementById('cta-button').disabled = false;
         }
-        
-        // ZMĚNA ZDE: Přejmenovali jsme funkci, aby odpovídala parametru v URL skriptu
-        function onloadTurnstileCallback() {
-            const ctaButton = document.getElementById('cta-button');
-            const turnstileContainer = document.getElementById('turnstile-container');
 
-            const turnstileWidgetID = turnstile.render(turnstileContainer, {
-                sitekey: '0x4AAAAAAB3RmXvueyfl3EU_', // Tvůj Site Key
-                callback: onTurnstileSuccess,
-                'appearance': 'interaction-only', // Neviditelný režim
-            });
-
-            ctaButton.addEventListener('click', function() {
-                this.textContent = 'Ověřuji...';
-                turnstile.execute(turnstileWidgetID);
-            });
-        }
+        // ZMĚNA ZDE: Tato funkce už není potřeba, jelikož se Turnstile spouští automaticky
+        // document.addEventListener('DOMContentLoaded', ... ) byl odstraněn
     </script>
 </body>
 </html>
