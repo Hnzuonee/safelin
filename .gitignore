@@ -1,0 +1,8 @@
+# macOS
+.DS_Store
+
+# Node & tooling caches (pokud něco budeš přidávat)
+node_modules/
+npm-debug.log*
+.yarn-cache/
+.pnpm-store/
