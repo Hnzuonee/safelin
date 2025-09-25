@@ -1,51 +1,59 @@
-/**
- * Ověří Turnstile token u Cloudflare API.
- */
-async function verifyTurnstileToken(token, secretKey) {
-    const verificationURL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify';
-    const response = await fetch(verificationURL, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        body: `secret=${encodeURIComponent(secretKey)}&response=${encodeURIComponent(token)}`
-    });
-    const data = await response.json();
-    return data.success;
-}
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Jméno Modelky | Exkluzivní Obsah</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <style>
+        :root { --background-color: #0d0d1a; --primary-pink: #f900ff; --primary-cyan: #00f2ff; --text-color: #f0f0f0; --surface-color: rgba(26, 26, 41, 0.6); --glow-color-1: rgba(249, 0, 255, 0.5); --glow-color-2: rgba(0, 242, 255, 0.5); }
+        body { font-family: 'Poppins', sans-serif; background-color: var(--background-color); color: var(--text-color); line-height: 1.6; background: linear-gradient(-45deg, #0d0d1a, #1a0d1a, #0d1a1a, #0d0d1a); background-size: 400% 400%; animation: gradientBG 20s ease infinite; }
+        @keyframes gradientBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+        .container { max-width: 900px; margin: 0 auto; padding: 20px 15px; }
+        .profile-card { background: var(--surface-color); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; padding: 30px; text-align: center; margin-top: 20px; box-shadow: 0 0 40px rgba(0,0,0,0.5); }
+        .profile-picture { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 3px solid var(--primary-pink); margin: 0 auto 20px auto; box-shadow: 0 0 15px var(--glow-color-1), 0 0 25px var(--glow-color-1); }
+        h1 { font-size: 2.5rem; font-weight: 900; text-shadow: 0 0 8px var(--glow-color-2); }
+        .bio-short { font-size: 1.1rem; opacity: 0.8; margin-bottom: 30px; }
+        .cta-button { font-family: 'Poppins', sans-serif; color: white; border: none; border-radius: 50px; padding: 18px 45px; font-size: 1.2rem; font-weight: 700; cursor: pointer; text-decoration: none; display: inline-block; transition: all 0.2s ease; text-transform: uppercase; letter-spacing: 1px; background: linear-gradient(-45deg, var(--primary-pink), var(--primary-cyan)); background-size: 400% 400%; animation: gradientBG 8s ease infinite; box-shadow: 0 0 20px var(--glow-color-1), 0 0 30px var(--glow-color-2); }
+        .cta-button:hover:not(:disabled) { transform: translateY(-5px) scale(1.05); box-shadow: 0 0 30px var(--glow-color-1), 0 0 45px var(--glow-color-2); }
+        .cta-button:disabled { opacity: 0.5; cursor: not-allowed; animation: none; box-shadow: none; }
+        .disclaimer { font-size: 0.8rem; opacity: 0.6; margin-top: 15px; }
+        .footer { text-align: center; padding: 40px 0 20px 0; font-size: 0.8rem; opacity: 0.5; }
+        .footer a { color: var(--text-color); text-decoration: none; margin: 0 10px; } .footer a:hover { text-decoration: underline; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <section class="profile-card">
+            <img src="https://images.pexels.com/photos/1848565/pexels-photo-1848565.jpeg?auto=compress&cs=tinysrgb&w=400" alt="Profilová fotka" class="profile-picture">
+            <h1>Kris</h1>
+            <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
 
-/**
- * Zpracovává POST požadavky z formuláře, ověří token a přesměruje.
- */
-export async function onRequestPost(context) {
-    try {
-        const formData = await context.request.formData();
-        const token = formData.get('cf-turnstile-response');
+            <form action="/redirect" method="POST">
+                <div class="cf-turnstile"
+                     data-sitekey="0x4AAAAAAB3RmXvueyfl3EU_"
+                     data-callback="onTurnstileSuccess"
+                     data-size="invisible"></div>
 
-        // Načtení klíčů a cílové URL z proměnných prostředí
-        const secretKey = context.env.TURNSTILE_SECRET_KEY;
-        const destinationURL = context.env.DESTINATION_URL; // ZMĚNA ZDE
+                <button type="submit" id="cta-button" class="cta-button" disabled>Moje osobní stránka</button>
+            </form>
 
-        if (!token || !secretKey) {
-            return new Response('Chybí token nebo serverový klíč.', { status: 400 });
+            <p class="disclaimer">Kliknutím potvrzujete, že jste plnoletí a souhlasíte s podmínkami.</p>
+        </section>
+    </div>
+
+    <footer class="footer">
+        <p>&copy; 2025 Kris. Všechna práva vyhrazena.</p>
+        <p><a href="#">Podmínky</a> | <a href="#">Soukromí</a> | <a href="mailto:report@tvojedomena.cz">Nahlásit</a></p>
+    </footer>
+
+    <script>
+        // Callback se nyní stará jen o aktivaci tlačítka.
+        // Token si Turnstile přidá do formuláře automaticky sám.
+        function onTurnstileSuccess() {
+            document.getElementById('cta-button').disabled = false;
         }
-
-        // Kontrola, zda je cílová URL nastavena na serveru
-        if (!destinationURL) {
-            console.error("Chyba: Proměnná prostředí DESTINATION_URL není nastavena.");
-            return new Response('Chyba konfigurace serveru.', { status: 500 });
-        }
-
-        const isValid = await verifyTurnstileToken(token, secretKey);
-
-        if (isValid) {
-            return new Response(null, {
-                status: 302,
-                headers: { 'Location': destinationURL, 'Cache-Control': 'no-store' }
-            });
-        } else {
-            return new Response('Ověření selhalo. Jste robot?', { status: 403 });
-        }
-    } catch (error) {
-        console.error("Chyba ve funkci redirect:", error);
-        return new Response('Došlo k interní chybě na serveru.', { status: 500 });
-    }
-}
+    </script>
+</body>
+</html>
