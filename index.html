@@ -7,7 +7,7 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"></script>
     <style>
         :root {
             --background-color: #0d0d1a;
@@ -15,8 +15,6 @@
             --primary-cyan: #00f2ff;
             --text-color: #f0f0f0;
             --surface-color: rgba(26, 26, 41, 0.7);
-            --glow-color-1: rgba(249, 0, 255, 0.5);
-            --glow-color-2: rgba(0, 242, 255, 0.5);
         }
         body {
             font-family: 'Poppins', sans-serif;
@@ -34,11 +32,7 @@
             50% { background-position: 100% 50%; }
             100% { background-position: 0% 50%; }
         }
-        .container {
-            max-width: 900px;
-            margin: 0 auto;
-            padding: 40px 20px;
-        }
+        .container { max-width: 900px; margin: 0 auto; padding: 40px 20px; }
         .card {
             background: var(--surface-color);
             backdrop-filter: blur(15px);
@@ -56,19 +50,9 @@
             object-fit: cover;
             border: 4px solid var(--primary-pink);
             margin: 0 auto 20px auto;
-            box-shadow: 0 0 20px var(--glow-color-1), 0 0 35px var(--glow-color-1);
         }
-        h1 {
-            font-size: 3rem;
-            font-weight: 900;
-            text-shadow: 0 0 10px var(--glow-color-2);
-            margin-bottom: 10px;
-        }
-        .bio-short {
-            font-size: 1.2rem;
-            opacity: 0.9;
-            margin-bottom: 30px;
-        }
+        h1 { font-size: 3rem; font-weight: 900; margin-bottom: 10px; }
+        .bio-short { font-size: 1.2rem; opacity: 0.9; margin-bottom: 30px; }
         .cta-button {
             font-family: 'Poppins', sans-serif;
             color: white;
@@ -86,69 +70,16 @@
             background: linear-gradient(-45deg, var(--primary-pink), var(--primary-cyan));
             background-size: 200% 200%;
             animation: gradientBG 8s ease infinite;
-            box-shadow: 0 0 20px var(--glow-color-1), 0 0 30px var(--glow-color-2);
-            position: relative;
-            overflow: hidden;
         }
-        .cta-button:hover:not(:disabled) {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 0 30px var(--glow-color-1), 0 0 45px var(--glow-color-2);
-        }
-        .cta-button:disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            animation: none;
-        }
-        .gallery {
-            display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-            gap: 15px;
-            margin-top: 40px;
-        }
-        .gallery img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            border-radius: 16px;
-            border: 2px solid rgba(255, 255, 255, 0.1);
-            transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-        .gallery img:hover {
-            transform: scale(1.05);
-            box-shadow: 0 0 15px var(--glow-color-2);
-        }
-        h2 {
-            font-size: 2rem;
-            font-weight: 700;
-            margin-top: 0;
-            margin-bottom: 20px;
-            text-shadow: 0 0 8px var(--glow-color-1);
-        }
-        .about-text, .credentials ul {
-            text-align: left;
-            opacity: 0.8;
-        }
-        .credentials ul {
-            list-style: none;
-            padding: 0;
-        }
-        .credentials li {
-            margin-bottom: 10px;
-            padding-left: 25px;
-            position: relative;
-        }
-        .credentials li::before {
-            content: '✓';
-            color: var(--primary-cyan);
-            position: absolute;
-            left: 0;
-        }
-        .footer {
-            text-align: center;
-            padding: 20px 0;
-            font-size: 0.9rem;
-            opacity: 0.6;
-        }
+        .cta-button:disabled { opacity: 0.7; cursor: not-allowed; }
+        .gallery { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-top: 40px; }
+        .gallery img { width: 100%; height: 100%; object-fit: cover; border-radius: 16px; }
+        h2 { font-size: 2rem; font-weight: 700; margin-top: 0; margin-bottom: 20px; }
+        .about-text, .credentials ul { text-align: left; opacity: 0.8; }
+        .credentials ul { list-style: none; padding: 0; }
+        .credentials li { margin-bottom: 10px; padding-left: 25px; position: relative; }
+        .credentials li::before { content: '✓'; color: var(--primary-cyan); position: absolute; left: 0; }
+        .footer { text-align: center; padding: 20px 0; font-size: 0.9rem; opacity: 0.6; }
     </style>
 </head>
 <body>
@@ -157,25 +88,15 @@
             <img src="img/profil.jpg" alt="Profilová fotka Kris" class="profile-picture">
             <h1>Kris</h1>
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
-
-            <form action="/redirect" method="POST" target="_blank">
-                <div class="cf-turnstile"
-                     data-sitekey="0x4AAAAAAB3S4iz1VmOz-kYh"
-                     data-callback="onTurnstileSuccess"
-                     data-error-callback="onTurnstileError"
-                     data-size="invisible"></div>
-
-                <button type="submit" id="cta-button" class="cta-button" disabled>
-                    <span id="button-text"></span>
-                </button>
-            </form>
+            
+            <div id="turnstile-widget-container"></div>
+            
+            <button type="button" id="cta-button" class="cta-button">Vstoupit</button>
         </section>
 
         <section class="card">
             <h2>Něco málo o mně</h2>
-            <p class="about-text">
-                Jsem Kris, tvůrkyně, která miluje posouvání hranic a sdílení své nejautentičtější stránky. Na mé stránce najdeš exkluzivní obsah, který jinde neuvidíš. Pojďme se bavit!
-            </p>
+            <p class="about-text">Jsem Kris, tvůrkyně, která miluje posouvání hranic a sdílení své nejautentičtější stránky...</p>
             <div class="gallery">
                 <img src="img/galerie-01.jpeg" alt="Ukázka fotky z galerie 1">
                 <img src="img/galerie-02.jpeg" alt="Ukázka fotky z galerie 2">
@@ -199,34 +120,56 @@
 
     <script>
         const button = document.getElementById('cta-button');
-        const buttonText = document.getElementById('button-text');
-        let countdownInterval;
+        const originalButtonText = button.innerText;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            let count = 3;
-            buttonText.innerText = `Ověřuji ${count}...`;
+        // Co se stane po úspěšném ověření
+        function onTurnstileSuccess(token) {
+            button.disabled = true;
+            button.innerText = 'Moment...';
 
-            countdownInterval = setInterval(() => {
-                count--;
-                if (count > 0) {
-                    buttonText.innerText = `Ověřuji ${count}...`;
+            const formData = new FormData();
+            formData.append('cf-turnstile-response', token);
+            
+            fetch('/redirect', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                if (response.redirected) {
+                    window.open(response.url, '_blank'); // Otevřeme v novém okně
                 } else {
-                    buttonText.innerText = 'Moment...';
-                    clearInterval(countdownInterval);
+                    return response.text().then(text => { throw new Error(text) });
                 }
-            }, 1000);
+            })
+            .catch(error => {
+                console.error('Chyba:', error);
+                button.innerText = 'Chyba ověření';
+            })
+            .finally(() => {
+                // Resetujeme tlačítko, pokud nedošlo k přesměrování
+                setTimeout(() => {
+                    button.disabled = false;
+                    button.innerText = originalButtonText;
+                    turnstile.reset('#turnstile-widget-container');
+                }, 2000);
+            });
+        }
+        
+        // Co se stane, když uživatel klikne na tlačítko
+        button.addEventListener('click', () => {
+            button.disabled = true;
+            button.innerText = 'Ověřuji...';
+            turnstile.render('#turnstile-widget-container', {
+                sitekey: '0x4AAAAAAB3S4iz1VmOz-kYh', // Tvůj Site Key
+                callback: onTurnstileSuccess,
+                'error-callback': () => {
+                    button.disabled = false;
+                    button.innerText = 'Zkusit znovu';
+                },
+                size: 'invisible'
+            });
+            turnstile.execute('#turnstile-widget-container');
         });
-
-        function onTurnstileSuccess() {
-            clearInterval(countdownInterval);
-            buttonText.innerText = 'Vstupte';
-            button.disabled = false;
-        }
-
-        function onTurnstileError() {
-            clearInterval(countdownInterval);
-            buttonText.innerText = 'Chyba ověření';
-        }
     </script>
 </body>
 </html>
