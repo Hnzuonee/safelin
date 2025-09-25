@@ -20,15 +20,13 @@ export async function onRequestPost(context) {
         const formData = await context.request.formData();
         const token = formData.get('cf-turnstile-response');
 
-        // Načtení klíčů a cílové URL z proměnných prostředí
         const secretKey = context.env.TURNSTILE_SECRET_KEY;
-        const destinationURL = context.env.DESTINATION_URL; // ZMĚNA ZDE
+        const destinationURL = context.env.DESTINATION_URL;
 
         if (!token || !secretKey) {
             return new Response('Chybí token nebo serverový klíč.', { status: 400 });
         }
 
-        // Kontrola, zda je cílová URL nastavena na serveru
         if (!destinationURL) {
             console.error("Chyba: Proměnná prostředí DESTINATION_URL není nastavena.");
             return new Response('Chyba konfigurace serveru.', { status: 500 });
@@ -37,11 +35,22 @@ export async function onRequestPost(context) {
         const isValid = await verifyTurnstileToken(token, secretKey);
 
         if (isValid) {
+            // Uživatel je člověk, přesměrujeme ho
             return new Response(null, {
                 status: 302,
                 headers: { 'Location': destinationURL, 'Cache-Control': 'no-store' }
             });
         } else {
+            // --- ZMĚNA ZDE: PŘIDÁNO LOGOVÁNÍ PRO BOTY ---
+            const requestHeaders = context.request.headers;
+            const ip = requestHeaders.get('cf-connecting-ip') || 'N/A';
+            const country = requestHeaders.get('cf-ipcountry') || 'N/A';
+            const userAgent = requestHeaders.get('user-agent') || 'N/A';
+
+            // Tento řádek se zapíše do logu na Cloudflare
+            console.log(`[BOT DETECTED]: Neúspěšné ověření. IP: ${ip}, Země: ${country}, User-Agent: ${userAgent}`);
+            // ------------------------------------------------
+
             return new Response('Ověření selhalo. Jste robot?', { status: 403 });
         }
     } catch (error) {
