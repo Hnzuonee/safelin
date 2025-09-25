@@ -31,7 +31,7 @@
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
             
             <form action="/redirect" method="POST">
-                <div class="cf-turnstile" data-sitekey="0x4AAAAAAB3RmXvueyfl3EU_" data-callback="onTurnstileSuccess"></div>
+                <div id="turnstile-widget" class="cf-turnstile" data-sitekey="0x4AAAAAAB3RmXvueyfl3EU_" data-callback="onTurnstileSuccess"></div>
                 
                 <input type="hidden" name="cf-turnstile-response" id="turnstile-token-input">
 
@@ -50,13 +50,18 @@
     <script>
         // Callback funkce, kterou Turnstile zavolá po úspěšném ověření
         function onTurnstileSuccess(token) {
-            // ZMĚNA ZDE: Místo fetch jen vyplníme skryté políčko a odemkneme tlačítko
             document.getElementById('turnstile-token-input').value = token;
             document.getElementById('cta-button').disabled = false;
         }
 
-        // ZMĚNA ZDE: Tato funkce už není potřeba, jelikož se Turnstile spouští automaticky
-        // document.addEventListener('DOMContentLoaded', ... ) byl odstraněn
+        // TATO FUNKCE BYLA PŘIDÁNA
+        // Zavolá se, jakmile je skript Turnstile plně načtený
+        function onloadTurnstileCallback() {
+            turnstile.render('#turnstile-widget', {
+                sitekey: '0x4AAAAAAB3RmXvueyfl3EU_',
+                callback: onTurnstileSuccess,
+            });
+        }
     </script>
 </body>
 </html>
