@@ -7,7 +7,6 @@
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;700;900&display=swap" rel="stylesheet">
-    <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
     <style>
         :root {
             --background-color: #0d0d1a;
@@ -80,7 +79,6 @@
         .credentials li { margin-bottom: 10px; padding-left: 25px; position: relative; }
         .credentials li::before { content: '✓'; color: var(--primary-cyan); position: absolute; left: 0; }
         .footer { text-align: center; padding: 20px 0; font-size: 0.9rem; opacity: 0.6; }
-        .cf-turnstile { display: none; }
     </style>
 </head>
 <body>
@@ -90,11 +88,7 @@
             <h1>Kris</h1>
             <p class="bio-short">Vítej v mé soukromé zóně. Zde začíná ta pravá zábava.</p>
             
-            <div class="cf-turnstile"
-                 data-sitekey="0x4AAAAAAB3S4iz1VmOz-kYh"
-                 data-callback="onTurnstileSuccess"
-                 data-error-callback="onTurnstileError"
-                 data-size="invisible"></div>
+            <div class="cf-turnstile"></div>
             
             <button type="button" id="cta-button" class="cta-button" disabled>Ověřuji...</button>
         </section>
@@ -129,19 +123,69 @@
         const button = document.getElementById('cta-button');
         let turnstileToken = '';
 
+        console.log('Skript se spustil.');
+
+        // Funkce, která se zavolá, když Turnstile úspěšně získá token
         function onTurnstileSuccess(token) {
+            console.log('Turnstile ověření bylo ÚSPĚŠNÉ. Získán token:', token);
             turnstileToken = token;
             button.disabled = false;
             button.innerText = 'Vstupte';
         }
 
-        function onTurnstileError() {
+        // Funkce, která se zavolá, když dojde k jakékoliv chybě
+        function onTurnstileError(errorCode) {
+            console.error('Turnstile ověření SELHALO.');
+            console.error('Chybový kód (pokud je k dispozici):', errorCode);
             button.innerText = 'Chyba ověření';
         }
+        
+        // Načítání externího skriptu pro lepší detekci chyb
+        function loadTurnstile() {
+            const script = document.createElement('script');
+            script.src = 'https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit';
+            script.async = true;
+            script.defer = true;
+            
+            // Co se stane, když se skript úspěšně načte
+            script.onload = function() {
+                console.log('Externí skript Turnstile byl úspěšně načten.');
+                // Nyní ručně spustíme renderování widgetu
+                try {
+                    turnstile.render('.cf-turnstile', {
+                        sitekey: '0x4AAAAAAB3S4iz1VmOz-kYh', // Ujisti se, že je klíč správný
+                        callback: onTurnstileSuccess,
+                        'error-callback': onTurnstileError,
+                        'size': 'invisible' // Přidáno pro neviditelný widget
+                    });
+                    console.log('Renderování widgetu bylo spuštěno.');
+                } catch (e) {
+                    console.error('Chyba při pokusu o renderování widgetu:', e);
+                    onTurnstileError('render-error');
+                }
+            };
+            
+            // Co se stane, když se skriptu NEPODAŘÍ načíst (např. je blokován)
+            script.onerror = function() {
+                console.error('Nepodařilo se načíst externí skript Turnstile! Je blokován?');
+                onTurnstileError('script-load-error');
+            };
+            
+            document.head.appendChild(script);
+        }
 
+        // Spustíme načítání
+        loadTurnstile();
+
+
+        // Kód pro odeslání po kliknutí na tlačítko
         button.addEventListener('click', () => {
-            if (button.disabled || !turnstileToken) return;
+            if (button.disabled || !turnstileToken) {
+                console.warn('Kliknuto na tlačítko, ale je neaktivní nebo chybí token.');
+                return;
+            }
 
+            console.log('Tlačítko stisknuto, odesílám token na server...');
             button.disabled = true;
             button.innerText = 'Moment...';
 
@@ -151,19 +195,23 @@
             fetch('/redirect', {
                 method: 'POST',
                 body: formData,
-                redirect: 'manual' // Důležité: Zabráníme automatickému přesměrování
+                redirect: 'manual'
             })
             .then(response => {
-                // Zkontrolujeme, jestli backend poslal přesměrování
+                console.log('Odpověď ze serveru přijata, status:', response.status);
                 if (response.status === 302 && response.headers.has('Location')) {
-                    // Přesměrujeme uživatele v tom samém okně
+                    console.log('Přesměrování bylo úspěšné, přesměrovávám na:', response.headers.get('Location'));
                     window.location.href = response.headers.get('Location');
                 } else {
-                    // Pokud to selhalo, zobrazíme chybu
-                    onTurnstileError();
+                    console.error('Server nevrátil platné přesměrování.');
+                    response.text().then(text => console.error('Odpověď serveru:', text));
+                    onTurnstileError('server-redirect-failed');
                 }
             })
-            .catch(onTurnstileError);
+            .catch(error => {
+                console.error('Došlo k chybě při odesílání požadavku na server (fetch):', error);
+                onTurnstileError('fetch-error');
+            });
         });
     </script>
 </body>
